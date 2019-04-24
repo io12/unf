@@ -1,9 +1,9 @@
 [package]
-name = "unp"
+name = "unf"
 version = "0.1.0"
 authors = ["Benjamin Levy <blevy@protonmail.com>"]
 edition = "2018"
-description = "Unixize a filename"
+description = "UNixize Filename -- replace annoying anti-unix characters in filenames"
 
 [dependencies]
 clap = "2.33.0"
