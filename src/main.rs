@@ -5,6 +5,8 @@ extern crate clap;
 extern crate regex;
 
 use regex::Regex;
+use std::io::Error;
+use std::path::Path;
 
 fn unixize_filename_str(fname: &str) -> String {
     lazy_static! {
@@ -20,7 +22,7 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
     let matches = app_from_crate!()
         // TODO: make usage more descriptive
         .args_from_usage(
@@ -31,9 +33,16 @@ fn main() {
         )
         .get_matches();
 
+    let cwd = std::env::current_dir()?;
+
     // Here unwrap() is safe because PATH is a required argument
-    for path in matches.values_of("PATH").unwrap() {
-        let new = unixize_filename_str(path);
-        println!("{}", new);
+    for path in matches.values_of("PATH").unwrap().map(Path::new) {
+        let parent = path.parent().unwrap_or(&cwd);
+        let basename = &path.file_name().unwrap().to_string_lossy();
+        let new_basename = unixize_filename_str(basename);
+        let new_path = parent.join(new_basename);
+        println!("{:?}", new_path);
     }
+
+    Ok(())
 }
