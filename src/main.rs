@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate clap;
+
 fn main() {
-    println!("Hello, world!");
+    let matches = app_from_crate!().get_matches();
+    println!("{:?}", matches);
 }
