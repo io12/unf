@@ -88,9 +88,10 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
 
     let should_prompt = !args.is_present("force") && !args.is_present("dryrun");
 
-    let dir_ents = read_dir(path).collect();
     let recurse = args.is_present("recursive")
-        && !dir_empty(path)?
+        && read_dir(path)
+            .and_then(|ents| ents.next().is_some())
+            .unwrap_or(false)
         && (!should_prompt || {
             let msg = format!("descend into directory '{}'?", path.display());
             prompt_default(msg, false)
