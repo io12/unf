@@ -7,6 +7,7 @@ description = """
 UNixize Filename -- replace annoying anti-unix characters in filenames
 """
 readme = "README.md"
+license = "MIT"
 
 [dependencies]
 clap = "2.33.0"
