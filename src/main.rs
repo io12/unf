@@ -6,13 +6,11 @@ extern crate clap;
 extern crate failure;
 extern crate promptly;
 extern crate regex;
-extern crate walkdir;
 
 use promptly::prompt_default;
 use regex::Regex;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
 
 type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 
