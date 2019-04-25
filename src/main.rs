@@ -4,10 +4,13 @@ extern crate lazy_static;
 extern crate clap;
 #[macro_use]
 extern crate failure;
+extern crate promptly;
 extern crate regex;
 extern crate walkdir;
 
+use promptly::prompt_default;
 use regex::Regex;
+use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -58,12 +61,17 @@ fn parse_args() -> clap::ArgMatches<'static> {
              -r --recursive 'Recursively unixize filenames in directories. If \
                              some of the specified paths are directories, unf \
                              will operate recursively on their contents'
-             -q --quiet 'Do not log renames to stdout'
              -d --dryrun 'Do not rename any files but, log all the renames that \
                           would happen to stdout'
-             -s --follow-symlinks 'Follow symbolic links'",
+             -s --follow-symlinks 'Follow symbolic links'
+             -f --force 'Do not interactively prompt to rename each file'",
         )
         .get_matches()
+}
+
+// Returns whether a directory is empty
+fn dir_empty(path: &Path) -> Result<bool> {
+    Ok(read_dir(path)?.count() == 0)
 }
 
 // Unixize the filename(s) specified by a path, according to the
@@ -72,6 +80,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     lazy_static! {
         static ref CWD: PathBuf = std::env::current_dir().unwrap();
     }
+
     let parent = path.parent().unwrap_or(&CWD);
     let basename = &path
         .file_name()
@@ -79,11 +88,18 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         .to_string_lossy();
     let new_basename = unixize_filename_str(basename);
 
-    if args.is_present("recursive") {
-        let follow_links = args.is_present("follow_symlinks");
-        let dir_iter = WalkDir::new(path).follow_links(follow_links);
-        for ent in dir_iter {
-            unixize_filename(ent?.path(), args)?;
+    let should_prompt = !args.is_present("force") && !args.is_present("dryrun");
+
+    let dir_ents = read_dir(path).collect();
+    let recurse = args.is_present("recursive")
+        && !dir_empty(path)?
+        && (!should_prompt || {
+            let msg = format!("descend into directory '{}'?", path.display());
+            prompt_default(msg, false)
+        });
+    if recurse {
+        for ent in read_dir(path)? {
+            unixize_filename(&ent?.path(), args)?;
         }
     }
 
@@ -95,8 +111,16 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     }
 
     let new_path = parent.join(new_basename);
-    if !args.is_present("quiet") {
-        println!("'{}' -> '{}'", path.display(), new_path.display());
+    let msg = format!("rename '{}' -> '{}'", path.display(), new_path.display());
+    if should_prompt {
+        // Interactively prompt whether to rename the file, skipping
+        // if the user says no
+        let msg = format!("{}?", msg);
+        if !prompt_default(msg, false) {
+            return Ok(());
+        }
+    } else {
+        println!("{}", msg);
     }
     if !args.is_present("dryrun") {
         std::fs::rename(path, new_path)?;
