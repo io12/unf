@@ -53,12 +53,14 @@ fn unixize_filename_str(fname: &str) -> String {
 // Use clap crate to parse arguments
 fn parse_args() -> clap::ArgMatches<'static> {
     app_from_crate!()
-        // TODO: make usage more descriptive
         .args_from_usage(
             "<PATH>... 'The paths of filenames to unixize'
-             -r --recursive 'Recursively unixize filenames in directories'
-             -q --quiet 'Do not write to stdout'
-             -d --dryrun 'Do not rename files, only print names'
+             -r --recursive 'Recursively unixize filenames in directories. If \
+                             some of the specified paths are directories, unf \
+                             will operate recursively on their contents'
+             -q --quiet 'Do not log renames to stdout'
+             -d --dryrun 'Do not rename any files but, log all the renames that \
+                          would happen to stdout'
              -s --follow-symlinks 'Follow symbolic links'",
         )
         .get_matches()
