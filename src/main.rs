@@ -90,7 +90,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     // Skip files that already have unix-friendly names; this is done
     // after recursive handling because unix-friendly directory names
     // might have non-unix-friendly filenames inside
-    if basename != &new_basename {
+    if basename == &new_basename {
         return Ok(());
     }
 
