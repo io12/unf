@@ -67,11 +67,6 @@ fn parse_args() -> clap::ArgMatches<'static> {
         .get_matches()
 }
 
-// Returns whether a directory is empty
-fn dir_empty(path: &Path) -> Result<bool> {
-    Ok(read_dir(path)?.count() == 0)
-}
-
 // Unixize the filename(s) specified by a path, according to the
 // supplied arguments
 fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
@@ -89,9 +84,10 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     let should_prompt = !args.is_present("force") && !args.is_present("dryrun");
 
     let recurse = args.is_present("recursive")
-        && read_dir(path)
-            .and_then(|ents| ents.next().is_some())
-            .unwrap_or(false)
+        && match read_dir(path) {
+            Ok(mut ents) => ents.next().is_some(),
+            Err(_) => false,
+        }
         && (!should_prompt || {
             let msg = format!("descend into directory '{}'?", path.display());
             prompt_default(msg, false)
