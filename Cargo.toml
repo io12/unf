@@ -6,6 +6,7 @@ edition = "2018"
 description = """
 UNixize Filename -- replace annoying anti-unix characters in filenames
 """
+readme = "README.md"
 
 [dependencies]
 clap = "2.33.0"
