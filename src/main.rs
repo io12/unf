@@ -30,6 +30,9 @@ mod tests {
     }
 }
 
+// Clean up a string representing a filename, replacing
+// unix-unfriendly characters (like spaces, parentheses, etc.) See the
+// unit test for examples.
 fn unixize_filename_str(fname: &str) -> String {
     lazy_static! {
         static ref RE_INVAL_CHR: Regex = Regex::new("[^a-zA-Z0-9._-]").unwrap();
@@ -47,6 +50,7 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
+// Use clap crate to parse arguments
 fn parse_args() -> clap::ArgMatches<'static> {
     app_from_crate!()
         // TODO: make usage more descriptive
@@ -60,6 +64,8 @@ fn parse_args() -> clap::ArgMatches<'static> {
         .get_matches()
 }
 
+// Unixize the filename(s) specified by a path, according to the
+// supplied arguments
 fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
     lazy_static! {
         static ref CWD: PathBuf = std::env::current_dir().unwrap();
