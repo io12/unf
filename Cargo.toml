@@ -8,6 +8,7 @@ UNixize Filename -- replace annoying anti-unix characters in filenames
 """
 readme = "README.md"
 license = "MIT"
+repository = "https://github.com/io12/unf"
 
 [dependencies]
 clap = "2.33.0"
