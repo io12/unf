@@ -59,8 +59,8 @@ fn parse_args() -> clap::ArgMatches<'static> {
              -r --recursive 'Recursively unixize filenames in directories. If \
                              some of the specified paths are directories, unf \
                              will operate recursively on their contents'
-             -d --dryrun 'Do not rename any files but, log all the renames that \
-                          would happen to stdout'
+             -d --dryrun 'Do not rename any files but, print all the renames that \
+                          would happen'
              -s --follow-symlinks 'Follow symbolic links'
              -f --force 'Do not interactively prompt to rename each file'",
         )
