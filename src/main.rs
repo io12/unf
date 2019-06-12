@@ -81,9 +81,11 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         .to_string_lossy();
     let new_basename = unixize_filename_str(basename);
 
+    let is_dir = std::fs::metadata(path)?.is_dir();
     let should_prompt = !args.is_present("force") && !args.is_present("dryrun");
 
     let recurse = args.is_present("recursive")
+        && is_dir
         && (!should_prompt || {
             let msg = format!("descend into directory '{}'?", path.display());
             prompt_default(msg, false)
