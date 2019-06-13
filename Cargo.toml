@@ -4,8 +4,7 @@ version = "0.1.0"
 authors = ["Benjamin Levy <blevy@protonmail.com>"]
 edition = "2018"
 description = """
-UNixize Filename -- replace annoying anti-unix characters in filenames
-"""
+UNixize Filename -- replace annoying anti-unix characters in filenames"""
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/io12/unf"
