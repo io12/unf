@@ -16,6 +16,10 @@ cargo install unf
 
 This installs to `~/.cargo/bin`, so make sure that's in your `PATH`.
 
+### Arch Linux
+
+Install `unf` from the AUR.
+
 ## Usage
 
 ```
