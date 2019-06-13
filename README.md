@@ -8,7 +8,13 @@ Certain characters in filenames are problematic for command-line users. For exam
 
 ## Installing
 
-### TODO
+### Using `cargo`
+
+``` sh
+cargo install unf
+```
+
+This installs to `~/.cargo/bin`, so make sure that's in your `PATH`.
 
 ## Usage
 
