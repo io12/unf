@@ -80,7 +80,12 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         .to_string_lossy();
     let new_basename = unixize_filename_str(basename);
 
-    let is_dir = std::fs::metadata(path)?.is_dir();
+    let metadata = if args.is_present("follow-symlinks") {
+        std::fs::metadata(path)
+    } else {
+        std::fs::symlink_metadata(path)
+    }?;
+    let is_dir = metadata.is_dir();
     let should_prompt = !args.is_present("force");
 
     let recurse = args.is_present("recursive")
