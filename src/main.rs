@@ -59,8 +59,6 @@ fn parse_args() -> clap::ArgMatches<'static> {
              -r --recursive 'Recursively unixize filenames in directories. If \
                              some of the specified paths are directories, unf \
                              will operate recursively on their contents'
-             -d --dryrun 'Do not rename any files, but print all the renames that \
-                          would happen'
              -s --follow-symlinks 'Follow symbolic links'
              -f --force 'Do not interactively prompt to rename each file'",
         )
@@ -82,7 +80,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     let new_basename = unixize_filename_str(basename);
 
     let is_dir = std::fs::metadata(path)?.is_dir();
-    let should_prompt = !args.is_present("force") && !args.is_present("dryrun");
+    let should_prompt = !args.is_present("force");
 
     let recurse = args.is_present("recursive")
         && is_dir
@@ -115,9 +113,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     } else {
         println!("{}", msg);
     }
-    if !args.is_present("dryrun") {
-        std::fs::rename(path, new_path)?;
-    }
+    std::fs::rename(path, new_path)?;
 
     Ok(())
 }
