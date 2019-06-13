@@ -28,6 +28,7 @@ mod tests {
         assert_eq!(f("a-b-c"), "a-b-c");
         assert_eq!(f("🤔😀😃😄😁😆😅emojis.txt"), "emojis.txt");
         assert_eq!(f("Game (Not Pirated 😉).rar"), "Game_Not_Pirated.rar");
+        assert_eq!(f("--fake-flag"), "fake-flag");
     }
 }
 
@@ -46,8 +47,8 @@ fn unixize_filename_str(fname: &str) -> String {
     let s = RE_UND_DUP.replace_all(&s, "_");
     // Remove underscores before dot ('.')
     let s = RE_UND_DOT.replace_all(&s, ".");
-    // Remove leading and trailing underscores
-    let s = s.trim_matches('_');
+    // Remove leading and trailing underscores and hyphens
+    let s = s.trim_matches(|c| c == '_' || c == '-');
     s.to_string()
 }
 
