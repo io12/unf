@@ -4,7 +4,7 @@ UNixize Filename -- replace annoying anti-unix characters in filenames
 
 ## About
 
-Certain characters in filenames are problematic for command-line users. For example, `' '`, `'*'`, and `'|'` are treated specially by the shell, and `':'` is used as a path separator in environment variables. `unf` renames these files, so you no longer have to be annoyed when your Windows-using friend sends you an irritatingly-named zip file.
+Certain characters in filenames are problematic for command-line users. For example, spaces and parentheses are treated specially by the shell. `unf` renames these files, so you no longer have to be annoyed when your Windows-using friend sends you an irritatingly-named zip file.
 
 ## Installing
 
