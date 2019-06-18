@@ -33,6 +33,7 @@ mod tests {
     use super::*;
 
     // Representation of a virtual file tree used for test cases
+    #[derive(Debug, PartialEq)]
     enum FileTree {
         File(String),
         Dir(String, Vec<FileTree>),
@@ -264,12 +265,60 @@ mod tests {
         // Helper function to create a specified file structure and
         // run `unf` with the specified args. It then asserts that the
         // resulting file structure matches the expected result.
-        let f = |args: &[&str], tree: Vec<FileTree>, expected: Vec<FileTree>| {
-            create_tree_tmp(tree);
+        let mut f = |args: &[&str], tree: Vec<FileTree>, expected: Vec<FileTree>| {
+            let path = create_tree_tmp(tree);
+            std::env::set_current_dir(&path).unwrap();
+
             let args = app.get_matches_from_safe_borrow(args).unwrap();
-            try_main_with_args(args).unwrap()
+            try_main_with_args(args).unwrap();
+
+            let result = scan_tree(&path);
+            assert_eq!(expected, result);
         };
-        // TODO: finish making this test
+
+        let s = "🤔😀😃😄😁😆😅emojis.txt";
+        f(
+            &["unf", "-f", s],
+            vec![FileTree::File(s.to_string())],
+            vec![FileTree::File("emojis.txt".to_string())],
+        );
+
+        let s = "Game (Not Pirated 😉).rar";
+        f(
+            &["unf", "-f", s],
+            vec![FileTree::File(s.to_string())],
+            vec![FileTree::File("Game_Not_Pirated.rar".to_string())],
+        );
+
+        f(
+            &["unf", "-rf", "My Files/", "My Folder"],
+            vec![
+                FileTree::Dir("My Folder".to_string(), vec![]),
+                FileTree::Dir(
+                    "My Files".to_string(),
+                    vec![
+                        FileTree::File("Passwords :) .txt".to_string()),
+                        FileTree::File("Another Cool Photo.JPG".to_string()),
+                        FileTree::File("Wow Cool Photo.JPG".to_string()),
+                        FileTree::File("Cool Photo.JPG".to_string()),
+                    ],
+                ),
+            ],
+            vec![
+                FileTree::Dir("My_Folder".to_string(), vec![]),
+                FileTree::Dir(
+                    "My_Files".to_string(),
+                    vec![
+                        FileTree::File("Passwords.txt".to_string()),
+                        FileTree::File("Another_Cool_Photo.JPG".to_string()),
+                        FileTree::File("Wow_Cool_Photo.JPG".to_string()),
+                        FileTree::File("Cool_Photo.JPG".to_string()),
+                    ],
+                ),
+            ],
+        );
+
+        // TODO: more test cases
     }
 }
 
