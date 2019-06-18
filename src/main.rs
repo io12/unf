@@ -207,6 +207,17 @@ mod tests {
         assert_eq!(f("z___222.txt"), "z___223.txt");
         assert_eq!(f(".x._._._222.txt"), ".x._._._223.txt");
     }
+
+    #[test]
+    fn test_try_main_with_args() {
+        let mut app = make_clap_app();
+
+        let f = |args: &[&str]| {
+            let args = app.get_matches_from_safe_borrow(args).unwrap();
+            try_main_with_args(args).unwrap()
+        };
+        // TODO: finish making this test
+    }
 }
 
 // Clean up a string representing a filename, replacing
@@ -366,14 +377,18 @@ fn merge_filename(parts: &FilenameParts) -> String {
     s
 }
 
-fn try_main() -> Result<()> {
-    let args = make_clap_app().get_matches();
-
+fn try_main_with_args(args: clap::ArgMatches<'static>) -> Result<()> {
     for path in args.values_of("PATH").expect("no arguments").map(Path::new) {
         unixize_filename(path, &args)?;
     }
 
     Ok(())
+}
+
+fn try_main() -> Result<()> {
+    let args = make_clap_app().get_matches();
+
+    try_main_with_args(args)
 }
 
 fn main() {
