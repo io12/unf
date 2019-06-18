@@ -253,7 +253,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     let parent = path.parent().unwrap_or(&CWD);
     let basename = &path
         .file_name()
-        .ok_or(format_err!("path '{}' has no basename", path.display()))?
+        .ok_or_else(|| format_err!("path '{}' has no basename", path.display()))?
         .to_string_lossy();
     let new_basename = unixize_filename_str(basename);
 
