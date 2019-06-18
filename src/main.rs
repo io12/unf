@@ -229,18 +229,16 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
-// Use clap crate to parse arguments
-fn parse_args() -> clap::ArgMatches<'static> {
-    app_from_crate!()
-        .args_from_usage(
-            "<PATH>... 'The paths of filenames to unixize'
+// Use clap crate to create argument parser
+fn make_clap_app() -> clap::App<'static, 'static> {
+    app_from_crate!().args_from_usage(
+        "<PATH>... 'The paths of filenames to unixize'
              -r --recursive 'Recursively unixize filenames in directories. If \
                              some of the specified paths are directories, unf \
                              will operate recursively on their contents'
              -s --follow-symlinks 'Follow symbolic links'
              -f --force 'Do not interactively prompt to rename each file'",
-        )
-        .get_matches()
+    )
 }
 
 // Unixize the filename(s) specified by a path, according to the
@@ -369,10 +367,9 @@ fn merge_filename(parts: &FilenameParts) -> String {
 }
 
 fn try_main() -> Result<()> {
-    let args = parse_args();
+    let args = make_clap_app().get_matches();
 
-    // Here unwrap() is safe because PATH is a required argument
-    for path in args.values_of("PATH").unwrap().map(Path::new) {
+    for path in args.values_of("PATH").expect("no arguments").map(Path::new) {
         unixize_filename(path, &args)?;
     }
 
