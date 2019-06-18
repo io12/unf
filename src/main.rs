@@ -187,6 +187,23 @@ mod tests {
         );
     }
 
+    // Scan the file structure in a path to `FileTree`s
+    fn scan_tree(path: &Path) -> Vec<FileTree> {
+        let mut tree = Vec::new();
+        for ent in read_dir(path).unwrap() {
+            let ent = ent.unwrap();
+            let is_dir = ent.file_type().unwrap().is_dir();
+            let filename = ent.file_name().into_string().unwrap();
+            let ent = if is_dir {
+                FileTree::Dir(filename, scan_tree(&ent.path()))
+            } else {
+                FileTree::File(filename)
+            };
+            tree.push(ent);
+        }
+        tree
+    }
+
     // Actually create the file structure represented by a list of
     // `FileTree`
     fn create_tree(tree: Vec<FileTree>, path: &Path) {
@@ -244,7 +261,11 @@ mod tests {
     fn test_try_main_with_args() {
         let mut app = make_clap_app();
 
-        let f = |args: &[&str], tree: &FileTree| {
+        // Helper function to create a specified file structure and
+        // run `unf` with the specified args. It then asserts that the
+        // resulting file structure matches the expected result.
+        let f = |args: &[&str], tree: Vec<FileTree>, expected: Vec<FileTree>| {
+            create_tree_tmp(tree);
             let args = app.get_matches_from_safe_borrow(args).unwrap();
             try_main_with_args(args).unwrap()
         };
