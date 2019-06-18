@@ -27,9 +27,16 @@ const FILENAME_NUM_DIGITS: usize = 3;
 mod tests {
     extern crate tempdir;
 
+    use std::fs::File;
     use tempdir::TempDir;
 
     use super::*;
+
+    // Representation of a virtual file tree used for test cases
+    enum FileTree {
+        File(String),
+        Dir(String, Vec<FileTree>),
+    }
 
     #[test]
     fn test_unixize_filename_str() {
@@ -180,6 +187,31 @@ mod tests {
         );
     }
 
+    // Actually create the file structure represented by a list of
+    // `FileTree`
+    fn create_tree(tree: Vec<FileTree>, path: &Path) {
+        for ent in tree {
+            match ent {
+                FileTree::File(name) => {
+                    File::create(path.join(name)).unwrap();
+                }
+                FileTree::Dir(name, ents) => {
+                    let path = path.join(name);
+                    std::fs::create_dir(&path).unwrap();
+                    create_tree(ents, &path);
+                }
+            }
+        }
+    }
+
+    // Create the file structure represented by `FileTree`s in a
+    // temporary directory and return its path
+    fn create_tree_tmp(tree: Vec<FileTree>) -> PathBuf {
+        let path = TempDir::new("").unwrap().into_path();
+        create_tree(tree, &path);
+        path
+    }
+
     #[test]
     fn test_resolve_collision() {
         let tmp_dir = TempDir::new("").unwrap().into_path();
@@ -188,7 +220,7 @@ mod tests {
         // string representing the resolved collision
         let f = |filename: &str| -> String {
             let path = tmp_dir.join(filename);
-            std::fs::File::create(&path).unwrap();
+            File::create(&path).unwrap();
 
             resolve_collision(&path)
                 .file_name()
@@ -212,7 +244,7 @@ mod tests {
     fn test_try_main_with_args() {
         let mut app = make_clap_app();
 
-        let f = |args: &[&str]| {
+        let f = |args: &[&str], tree: &FileTree| {
             let args = app.get_matches_from_safe_borrow(args).unwrap();
             try_main_with_args(args).unwrap()
         };
