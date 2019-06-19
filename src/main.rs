@@ -525,7 +525,7 @@ fn try_main() -> Result<()> {
 
 fn main() {
     if let Err(err) = try_main() {
-        eprintln!("Error: {}", err);
+        eprintln!("unf: error: {}", err);
         std::process::exit(1);
     }
 }
