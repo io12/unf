@@ -44,6 +44,8 @@ $ unf -f 'Game (Not Pirated 😉).rar'
 rename 'Game (Not Pirated 😉).rar' -> 'Game_Not_Pirated.rar'
 ```
 
+### Recursion
+
 ``` sh
 $ unf -rf My\ Files/ My\ Folder
 rename 'My Files/Passwords :) .txt' -> 'My Files/Passwords.txt'
@@ -53,6 +55,8 @@ rename 'My Files/Cool Photo.JPG' -> 'My Files/Cool_Photo.JPG'
 rename 'My Files/' -> 'My_Files'
 rename 'My Folder' -> 'My_Folder'
 ```
+
+### Collisions
 
 ``` sh
 $ unf -f -- --fake-flag.txt fake-flag.txt ------fake-flag.txt ' fake-flag.txt' $'\tfake-flag.txt'
@@ -66,8 +70,20 @@ rename '	fake-flag.txt' -> 'fake-flag_003.txt'
 
 ### Is this useful?
 
-Hopefully for some people. There are certain situations for which I believe this tool is useful:
+Hopefully for some people. There are certain situations in which I believe this tool is useful.
 
-- Downloaded files uploaded by non-cli users, especially large archives with poorly-named files
+- Downloading files uploaded by non-CLI users, especially large archives with poorly-named files
 - The ` (1)` that gets appended to web browser download duplicates
 - Unix tools which take advantage of the loose Unix filename restrictions (like `youtube-dl`, which creates filenames from the video title)
+
+### How does this handle collisions?
+
+Since `unf` is an automatic batch rename tool, there may be cases where the path to the unixized filename already exists. `unf` resolves this crisis by appending and incrementing a zero-padded number to the end of the file stem. An example of this is displayed [here](#collisions).
+
+### Why is the collision-resolving number zero-padded?
+
+It has the nice property of being ordered properly when using tools that sort filenames by ASCII values, such as `ls` and shell completion.
+
+### Why not just use shell completion to access problematic filenames?
+
+Shell completion can automatically insert backslash escapes, but this is sub-optimal. The backslash escapes make the filenames less readable. However, shell completion is great for invoking `unf`.
