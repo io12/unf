@@ -86,4 +86,4 @@ It has the nice property of being ordered properly when using tools that sort fi
 
 ### Why not just use shell completion to access problematic filenames?
 
-Shell completion can automatically insert backslash escapes, but this is sub-optimal. The backslash escapes make the filenames less readable. However, shell completion is great for invoking `unf`.
+Shell completion can automatically insert backslash escapes, but this is sub-optimal. The backslash escapes make the filenames substantially less readable. However, shell completion is great for invoking `unf`.
