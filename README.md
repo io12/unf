@@ -53,3 +53,11 @@ rename 'My Files/Cool Photo.JPG' -> 'My Files/Cool_Photo.JPG'
 rename 'My Files/' -> 'My_Files'
 rename 'My Folder' -> 'My_Folder'
 ```
+
+``` sh
+$ unf -f -- --fake-flag.txt fake-flag.txt ------fake-flag.txt ' fake-flag.txt' $'\tfake-flag.txt'
+rename '--fake-flag.txt' -> 'fake-flag_000.txt'
+rename '------fake-flag.txt' -> 'fake-flag_001.txt'
+rename ' fake-flag.txt' -> 'fake-flag_002.txt'
+rename '	fake-flag.txt' -> 'fake-flag_003.txt'
+```
