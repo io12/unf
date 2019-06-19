@@ -61,3 +61,13 @@ rename '------fake-flag.txt' -> 'fake-flag_001.txt'
 rename ' fake-flag.txt' -> 'fake-flag_002.txt'
 rename '	fake-flag.txt' -> 'fake-flag_003.txt'
 ```
+
+## FAQ
+
+### Is this useful?
+
+Hopefully for some people. There are certain situations for which I believe this tool is useful:
+
+- Downloaded files uploaded by non-cli users, especially large archives with poorly-named files
+- The ` (1)` that gets appended to web browser download duplicates
+- Unix tools which take advantage of the loose Unix filename restrictions (like `youtube-dl`, which creates filenames from the video title)
