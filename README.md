@@ -82,7 +82,7 @@ Since `unf` is an automatic batch rename tool, there may be cases where the path
 
 ### Why is the collision-resolving number zero-padded?
 
-It has the nice property of being ordered properly when using tools that sort filenames by ASCII values, such as `ls` and shell completion.
+It has the nice property of being ordered when using tools that sort filenames by ASCII values, such as `ls` and shell completion.
 
 ### Why not just use shell completion to access problematic filenames?
 
