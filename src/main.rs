@@ -17,11 +17,13 @@ use std::path::{Path, PathBuf};
 
 type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 
+// Struct representing a filename that can be split, modified, and
+// merged back into a filename string
 #[derive(PartialEq, Debug)]
 struct FilenameParts {
-    stem: String,
-    num: Option<usize>,
-    ext: Option<String>,
+    stem: String, // From the beginning of the filename to the final dot before the extension
+    num: Option<usize>, // The zero-padded collision-resolving number
+    ext: Option<String>, // The file extension, not including the dot
 }
 
 const FILENAME_NUM_DIGITS: usize = 3;
@@ -400,12 +402,14 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     let is_dir = stat.is_dir();
     let should_prompt = !args.is_present("force");
 
+    // Determine whether to recurse, possibly by prompting the user
     let recurse = args.is_present("recursive")
         && is_dir
         && (!should_prompt || {
             let msg = format!("descend into directory '{}'?", path.display());
             prompt_default(msg, false)
         });
+
     if recurse {
         for ent in read_dir(path)? {
             unixize_filename(&ent?.path(), args)?;
@@ -430,6 +434,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
             return Ok(());
         }
     } else {
+        // Log rename non-interactively
         println!("{}", msg);
     }
 
@@ -437,12 +442,21 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     Ok(())
 }
 
+// Split, modify, and re-merge filename to increment the
+// collision-resolving number, or create it if non-existent
+fn inc_filename_num(filename: &str) -> String {
+    let FilenameParts { stem, num, ext } = split_filename(filename);
+    let num = match num {
+        Some(val) => Some(val + 1),
+        None => Some(0),
+    };
+    merge_filename(&FilenameParts { stem, num, ext })
+}
+
 // Check if the target path can be written to without clobbering an
 // existing file. If it can't, change it to a unique name. Note that
 // this function requires that the filename is non-empty and valid
 // UTF-8.
-//
-// TODO: Make sure this invariant holds
 fn resolve_collision(path: &Path) -> PathBuf {
     if path.exists() {
         let filename = path
@@ -450,15 +464,14 @@ fn resolve_collision(path: &Path) -> PathBuf {
             .expect("filename is empty")
             .to_str()
             .expect("filename is not valid UTF-8");
-        let FilenameParts { stem, num, ext } = split_filename(filename);
-        let num = match num {
-            Some(val) => Some(val + 1),
-            None => Some(0),
-        };
-        let filename = merge_filename(&FilenameParts { stem, num, ext });
+        let filename = inc_filename_num(filename);
         let path = path.with_file_name(filename);
+
+        // Recursively resolve the new filename. This is how the
+        // collision-resolving number is incremented.
         resolve_collision(&path)
     } else {
+        // File does not exist; we're done!
         path.to_path_buf()
     }
 }
