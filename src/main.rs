@@ -7,6 +7,7 @@ extern crate failure;
 extern crate promptly;
 extern crate regex;
 #[macro_use]
+#[cfg(test)]
 extern crate maplit;
 
 use promptly::prompt_default;
