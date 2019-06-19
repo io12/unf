@@ -1,6 +1,6 @@
 [package]
 name = "unf"
-version = "0.1.1"
+version = "0.1.1-dev"
 authors = ["Benjamin Levy <blevy@protonmail.com>"]
 edition = "2018"
 description = """
