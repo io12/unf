@@ -480,17 +480,36 @@ fn split_filename(filename: &str) -> FilenameParts {
     let mut it = filename.rsplitn(2, '.');
     let ext = it.next().expect("tried to split empty filename");
     let maybe_stem_num = it.next();
+
+    // Set the stem-num combination to the extension if the iterator
+    // said it was `None`. This is such that only the content after
+    // the final dot is considered the extension, but extension-less
+    // files are properly handled.
     let (stem_num, ext) = match maybe_stem_num {
         Some(stem_num) => (stem_num, Some(ext.to_string())),
         None => (ext, None),
     };
-    let num_it = stem_num.chars().rev().take(4).collect::<Vec<_>>();
+
+    // Hack to get an iterator over the last `FILENAME_NUM_DIGITS + 1`
+    // characters of the stem-num combination. For files that have the
+    // collision-resolving number, this is that prefixed with an
+    // underscore.
+    let num_it = stem_num
+        .chars()
+        .rev()
+        .take(FILENAME_NUM_DIGITS + 1)
+        .collect::<Vec<_>>();
     let mut num_it = num_it.iter().rev();
+
+    // Determine if the filename has a collision-resolving number and
+    // parse it
     let num = if num_it.next() == Some(&'_') && num_it.len() == FILENAME_NUM_DIGITS {
         num_it.collect::<String>().parse::<usize>().ok()
     } else {
         None
     };
+
+    // Split the stem from the stem-num combination
     let stem = if num.is_some() {
         stem_num
             .chars()
@@ -499,6 +518,7 @@ fn split_filename(filename: &str) -> FilenameParts {
     } else {
         stem_num.to_string()
     };
+
     FilenameParts { stem, num, ext }
 }
 
