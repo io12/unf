@@ -324,7 +324,7 @@ mod tests {
 
 // Clean up a string representing a filename, replacing
 // unix-unfriendly characters (like spaces, parentheses, etc.) See the
-// unit test for examples.
+// unit tests for examples.
 fn unixize_filename_str(fname: &str) -> String {
     lazy_static! {
         static ref RE_INVAL_CHR: Regex = Regex::new("[^a-zA-Z0-9._-]").unwrap();
