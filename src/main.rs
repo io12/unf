@@ -6,6 +6,8 @@ extern crate clap;
 extern crate failure;
 extern crate promptly;
 extern crate regex;
+#[macro_use]
+extern crate maplit;
 
 use promptly::prompt_default;
 use regex::Regex;
@@ -17,7 +19,7 @@ type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 #[derive(PartialEq, Debug)]
 struct FilenameParts {
     stem: String,
-    num: Option<u32>,
+    num: Option<usize>,
     ext: Option<String>,
 }
 
@@ -27,16 +29,19 @@ const FILENAME_NUM_DIGITS: usize = 3;
 mod tests {
     extern crate tempdir;
 
+    use std::collections::BTreeSet;
     use std::fs::File;
     use tempdir::TempDir;
 
     use super::*;
 
     // Representation of a virtual file tree used for test cases
-    #[derive(Debug, PartialEq)]
-    enum FileTree {
+    type FileTree = BTreeSet<FileTreeNode>;
+
+    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum FileTreeNode {
         File(String),
-        Dir(String, Vec<FileTree>),
+        Dir(String, FileTree),
     }
 
     #[test]
@@ -188,32 +193,31 @@ mod tests {
         );
     }
 
-    // Scan the file structure in a path to `FileTree`s
-    fn scan_tree(path: &Path) -> Vec<FileTree> {
-        let mut tree = Vec::new();
+    // Scan the file structure in a path to `FileTree`
+    fn scan_tree(path: &Path) -> FileTree {
+        let mut tree = FileTree::new();
         for ent in read_dir(path).unwrap() {
             let ent = ent.unwrap();
             let is_dir = ent.file_type().unwrap().is_dir();
             let filename = ent.file_name().into_string().unwrap();
             let ent = if is_dir {
-                FileTree::Dir(filename, scan_tree(&ent.path()))
+                FileTreeNode::Dir(filename, scan_tree(&ent.path()))
             } else {
-                FileTree::File(filename)
+                FileTreeNode::File(filename)
             };
-            tree.push(ent);
+            tree.insert(ent);
         }
         tree
     }
 
-    // Actually create the file structure represented by a list of
-    // `FileTree`
-    fn create_tree(tree: Vec<FileTree>, path: &Path) {
+    // Actually create the file structure represented by a `FileTree`
+    fn create_tree(tree: FileTree, path: &Path) {
         for ent in tree {
             match ent {
-                FileTree::File(name) => {
+                FileTreeNode::File(name) => {
                     File::create(path.join(name)).unwrap();
                 }
-                FileTree::Dir(name, ents) => {
+                FileTreeNode::Dir(name, ents) => {
                     let path = path.join(name);
                     std::fs::create_dir(&path).unwrap();
                     create_tree(ents, &path);
@@ -222,9 +226,9 @@ mod tests {
         }
     }
 
-    // Create the file structure represented by `FileTree`s in a
+    // Create the file structure represented by `FileTree` in a
     // temporary directory and return its path
-    fn create_tree_tmp(tree: Vec<FileTree>) -> PathBuf {
+    fn create_tree_tmp(tree: FileTree) -> PathBuf {
         let path = TempDir::new("").unwrap().into_path();
         create_tree(tree, &path);
         path
@@ -258,6 +262,13 @@ mod tests {
         assert_eq!(f(".x._._._222.txt"), ".x._._._223.txt");
     }
 
+    fn filenames_to_file_tree(filenames: &[&str]) -> FileTree {
+        filenames
+            .iter()
+            .map(|s| FileTreeNode::File(s.to_string()))
+            .collect()
+    }
+
     #[test]
     fn test_try_main_with_args() {
         let mut app = make_clap_app();
@@ -265,7 +276,7 @@ mod tests {
         // Helper function to create a specified file structure and
         // run `unf` with the specified args. It then asserts that the
         // resulting file structure matches the expected result.
-        let mut f = |args: &[&str], tree: Vec<FileTree>, expected: Vec<FileTree>| {
+        let mut f = |args: &[&str], tree: FileTree, expected: FileTree| {
             let path = create_tree_tmp(tree);
             std::env::set_current_dir(&path).unwrap();
 
@@ -279,46 +290,63 @@ mod tests {
         let s = "🤔😀😃😄😁😆😅emojis.txt";
         f(
             &["unf", "-f", s],
-            vec![FileTree::File(s.to_string())],
-            vec![FileTree::File("emojis.txt".to_string())],
+            btreeset![FileTreeNode::File(s.to_string())],
+            btreeset![FileTreeNode::File("emojis.txt".to_string())],
         );
 
         let s = "Game (Not Pirated 😉).rar";
         f(
             &["unf", "-f", s],
-            vec![FileTree::File(s.to_string())],
-            vec![FileTree::File("Game_Not_Pirated.rar".to_string())],
+            btreeset![FileTreeNode::File(s.to_string())],
+            btreeset![FileTreeNode::File("Game_Not_Pirated.rar".to_string())],
         );
 
         f(
             &["unf", "-rf", "My Files/", "My Folder"],
-            vec![
-                FileTree::Dir("My Folder".to_string(), vec![]),
-                FileTree::Dir(
+            btreeset![
+                FileTreeNode::Dir("My Folder".to_string(), btreeset![]),
+                FileTreeNode::Dir(
                     "My Files".to_string(),
-                    vec![
-                        FileTree::File("Passwords :) .txt".to_string()),
-                        FileTree::File("Another Cool Photo.JPG".to_string()),
-                        FileTree::File("Wow Cool Photo.JPG".to_string()),
-                        FileTree::File("Cool Photo.JPG".to_string()),
+                    btreeset![
+                        FileTreeNode::File("Passwords :) .txt".to_string()),
+                        FileTreeNode::File("Another Cool Photo.JPG".to_string()),
+                        FileTreeNode::File("Wow Cool Photo.JPG".to_string()),
+                        FileTreeNode::File("Cool Photo.JPG".to_string()),
                     ],
                 ),
             ],
-            vec![
-                FileTree::Dir("My_Folder".to_string(), vec![]),
-                FileTree::Dir(
+            btreeset![
+                FileTreeNode::Dir("My_Folder".to_string(), btreeset![]),
+                FileTreeNode::Dir(
                     "My_Files".to_string(),
-                    vec![
-                        FileTree::File("Passwords.txt".to_string()),
-                        FileTree::File("Another_Cool_Photo.JPG".to_string()),
-                        FileTree::File("Wow_Cool_Photo.JPG".to_string()),
-                        FileTree::File("Cool_Photo.JPG".to_string()),
+                    btreeset![
+                        FileTreeNode::File("Passwords.txt".to_string()),
+                        FileTreeNode::File("Another_Cool_Photo.JPG".to_string()),
+                        FileTreeNode::File("Wow_Cool_Photo.JPG".to_string()),
+                        FileTreeNode::File("Cool_Photo.JPG".to_string()),
                     ],
                 ),
             ],
         );
 
-        // TODO: more test cases
+        let filenames = [
+            "--fake-flag.txt",
+            "fake-flag.txt",
+            "------fake-flag.txt",
+            " fake-flag.txt",
+            "\tfake-flag.txt",
+        ];
+        f(
+            &[&["unf", "-f", "--"], &filenames[..]].concat(),
+            filenames_to_file_tree(&filenames),
+            btreeset![
+                FileTreeNode::File("fake-flag.txt".to_string()),
+                FileTreeNode::File("fake-flag_000.txt".to_string()),
+                FileTreeNode::File("fake-flag_001.txt".to_string()),
+                FileTreeNode::File("fake-flag_002.txt".to_string()),
+                FileTreeNode::File("fake-flag_003.txt".to_string()),
+            ],
+        );
     }
 }
 
@@ -445,7 +473,7 @@ fn split_filename(filename: &str) -> FilenameParts {
     let num_it = stem_num.chars().rev().take(4).collect::<Vec<_>>();
     let mut num_it = num_it.iter().rev();
     let num = if num_it.next() == Some(&'_') && num_it.len() == FILENAME_NUM_DIGITS {
-        num_it.collect::<String>().parse::<u32>().ok()
+        num_it.collect::<String>().parse::<usize>().ok()
     } else {
         None
     };
@@ -460,12 +488,18 @@ fn split_filename(filename: &str) -> FilenameParts {
     FilenameParts { stem, num, ext }
 }
 
+// Format the collision-resolving number of a filename to a
+// zero-padded string
+fn format_filename_num(num: usize) -> String {
+    format!("{:0width$}", num, width = FILENAME_NUM_DIGITS)
+}
+
 fn merge_filename(parts: &FilenameParts) -> String {
     let mut s = String::new();
     s.push_str(&parts.stem);
     if let Some(num) = parts.num {
         s.push('_');
-        s.push_str(&format!("{:0width$}", num, width = FILENAME_NUM_DIGITS));
+        s.push_str(&format_filename_num(num));
     }
     if let Some(ref ext) = parts.ext {
         s.push('.');
