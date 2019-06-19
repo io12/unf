@@ -349,7 +349,6 @@ fn make_clap_app() -> clap::App<'static, 'static> {
              -r --recursive 'Recursively unixize filenames in directories. If \
                              some of the specified paths are directories, unf \
                              will operate recursively on their contents'
-             -s --follow-symlinks 'Follow symbolic links'
              -f --force 'Do not interactively prompt to rename each file'",
     )
 }
@@ -368,11 +367,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         .to_string_lossy();
     let new_basename = unixize_filename_str(basename);
 
-    let stat = if args.is_present("follow-symlinks") {
-        std::fs::metadata(path)
-    } else {
-        std::fs::symlink_metadata(path)
-    }?;
+    let stat = std::fs::metadata(path)?;
     let is_dir = stat.is_dir();
     let should_prompt = !args.is_present("force");
 

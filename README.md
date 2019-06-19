@@ -30,8 +30,6 @@ unf [FLAGS] <PATH>...
 
 `-r` `--recursive`: Recursively unixize filenames in directories. If some of the specified paths are directories, unf will operate recursively on their contents
 
-`-s` `--follow-symlinks`: Follow symbolic links
-
 `-f` `--force` Do not interactively prompt to rename each file
 
 ## Examples
