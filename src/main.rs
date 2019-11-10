@@ -15,7 +15,7 @@ use regex::Regex;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 
-type Result<T> = std::result::Result<T, Box<std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 // Struct representing a filename that can be split, modified, and
 // merged back into a filename string
