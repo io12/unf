@@ -2,8 +2,6 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate failure;
 extern crate promptly;
 extern crate regex;
 #[macro_use]
