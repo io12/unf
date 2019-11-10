@@ -285,7 +285,6 @@ mod tests {
 
             let mut app = make_clap_app();
             let args = app.get_matches_from_safe_borrow(args).unwrap();
-            println!("debug: args: {:?}", args);
             try_main_with_args(args).unwrap();
 
             let result = scan_tree(&path);
@@ -574,7 +573,6 @@ fn merge_filename(parts: &FilenameParts) -> String {
 
 fn try_main_with_args(args: clap::ArgMatches<'static>) -> Result<()> {
     for path in args.values_of("PATH").expect("no arguments").map(Path::new) {
-        println!("debug: path: {}", path.display());
         unixize_filename(path, &args)?;
     }
 
