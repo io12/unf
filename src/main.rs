@@ -12,6 +12,8 @@ extern crate maplit;
 
 use promptly::prompt_default;
 use regex::Regex;
+
+use std::ffi::OsStr;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 
@@ -274,16 +276,16 @@ mod tests {
 
     #[test]
     fn test_try_main_with_args() {
-        let mut app = make_clap_app();
-
         // Helper function to create a specified file structure and
         // run `unf` with the specified args. It then asserts that the
         // resulting file structure matches the expected result.
-        let mut f = |args: &[&str], tree: FileTree, expected: FileTree| {
+        let f = |args: &[&str], tree: FileTree, expected: FileTree| {
             let path = create_tree_tmp(tree);
             std::env::set_current_dir(&path).unwrap();
 
+            let mut app = make_clap_app();
             let args = app.get_matches_from_safe_borrow(args).unwrap();
+            println!("debug: args: {:?}", args);
             try_main_with_args(args).unwrap();
 
             let result = scan_tree(&path);
@@ -350,6 +352,25 @@ mod tests {
                 FileTreeNode::File("fake-flag_003.txt".to_string()),
             ],
         );
+
+        let filenames = [
+            "--fake-flag.txt",
+            "fake-flag.txt",
+            "------fake-flag.txt",
+            " fake-flag.txt",
+            "\tfake-flag.txt",
+        ];
+        f(
+            &["unf", ".", "-rf"],
+            filenames_to_file_tree(&filenames),
+            btreeset![
+                FileTreeNode::File("fake-flag.txt".to_string()),
+                FileTreeNode::File("fake-flag_000.txt".to_string()),
+                FileTreeNode::File("fake-flag_001.txt".to_string()),
+                FileTreeNode::File("fake-flag_002.txt".to_string()),
+                FileTreeNode::File("fake-flag_003.txt".to_string()),
+            ],
+        );
     }
 }
 
@@ -384,6 +405,14 @@ fn make_clap_app() -> clap::App<'static, 'static> {
     )
 }
 
+// Like `unixize_filename()`, but only operate on children of `path`
+fn unixize_children(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
+    for ent in read_dir(path)? {
+        unixize_filename(&ent?.path(), args)?;
+    }
+    Ok(())
+}
+
 // Unixize the filename(s) specified by a path, according to the
 // supplied arguments
 fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
@@ -392,10 +421,13 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     }
 
     let parent = path.parent().unwrap_or(&CWD);
-    let basename = &path
-        .file_name()
-        .ok_or_else(|| format_err!("path '{}' has no basename", path.display()))?
-        .to_string_lossy();
+    let basename = &path.file_name().map(OsStr::to_string_lossy);
+    let basename = match basename {
+        Some(s) => s,
+        // If the path has no basename (for example, if it's `.` or `..`), only
+        // unixize children
+        None => return unixize_children(path, args),
+    };
     let new_basename = unixize_filename_str(basename);
 
     let stat = std::fs::metadata(path)?;
@@ -411,9 +443,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         });
 
     if recurse {
-        for ent in read_dir(path)? {
-            unixize_filename(&ent?.path(), args)?;
-        }
+        unixize_children(path, args)?;
     }
 
     // Skip files that already have unix-friendly names; this is done
@@ -544,6 +574,7 @@ fn merge_filename(parts: &FilenameParts) -> String {
 
 fn try_main_with_args(args: clap::ArgMatches<'static>) -> Result<()> {
     for path in args.values_of("PATH").expect("no arguments").map(Path::new) {
+        println!("debug: path: {}", path.display());
         unixize_filename(path, &args)?;
     }
 
