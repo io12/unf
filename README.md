@@ -1,3 +1,5 @@
+[![](https://img.shields.io/crates/v/unf)](https://crates.io/crates/unf)
+
 # `unf`
 
 UNixize Filename -- replace annoying anti-unix characters in filenames
