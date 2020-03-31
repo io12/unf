@@ -15,6 +15,8 @@ use std::ffi::OsStr;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 
+use std::collections::HashMap;
+
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 // Struct representing a filename that can be split, modified, and
@@ -58,6 +60,8 @@ mod tests {
         assert_eq!(f("🤔😀😃😄😁😆😅emojis.txt"), "emojis.txt");
         assert_eq!(f("Game (Not Pirated 😉).rar"), "Game_Not_Pirated.rar");
         assert_eq!(f("--fake-flag"), "fake-flag");
+        assert_eq!(f("Évidemment"), "Evidemment");
+        assert_eq!(f("àà_y_ü"), "aa_y_u");
     }
 
     #[test]
@@ -379,9 +383,51 @@ fn unixize_filename_str(fname: &str) -> String {
         static ref RE_INVAL_CHR: Regex = Regex::new("[^a-zA-Z0-9._-]").unwrap();
         static ref RE_UND_DUP: Regex = Regex::new("_+").unwrap();
         static ref RE_UND_DOT: Regex = Regex::new("_+\\.").unwrap();
+        static ref HASHMAP: HashMap<char, char> = {
+            let mut m = HashMap::new();
+
+            m.insert('À', 'A'); m.insert('Ä', 'A');
+            m.insert('Ç', 'C'); m.insert('È', 'E');
+            m.insert('É', 'E'); m.insert('Ê', 'E');
+            m.insert('Ì', 'I'); m.insert('Í', 'I');
+            m.insert('Î', 'I'); m.insert('Ï', 'I');
+            m.insert('Ð', 'D'); m.insert('Ò', 'O');
+            m.insert('Ó', 'O'); m.insert('Ô', 'O');
+            m.insert('Õ', 'O'); m.insert('Ö', 'O');
+            m.insert('Ø', 'O'); m.insert('Ù', 'U');
+            m.insert('Ú', 'U'); m.insert('Û', 'U');
+            m.insert('Ü', 'U'); m.insert('Ý', 'Y');
+            m.insert('à', 'a'); m.insert('á', 'a');
+            m.insert('â', 'a'); m.insert('ã', 'a');
+            m.insert('ä', 'a'); m.insert('å', 'a');
+            m.insert('ç', 'c'); m.insert('è', 'e');
+            m.insert('é', 'e'); m.insert('ê', 'e');
+            m.insert('ë', 'e'); m.insert('ì', 'i');
+            m.insert('í', 'i'); m.insert('î', 'i');
+            m.insert('ï', 'i'); m.insert('ð', 'o');
+            m.insert('ñ', 'n'); m.insert('ò', 'o');
+            m.insert('ó', 'o'); m.insert('ô', 'o');
+            m.insert('õ', 'o'); m.insert('ö', 'o');
+            m.insert('ø', 'o'); m.insert('ù', 'u');
+            m.insert('ú', 'u'); m.insert('û', 'u');
+            m.insert('ü', 'u'); m.insert('ý', 'y');
+            m.insert('ÿ', 'y');
+
+            m
+        };
     }
-    // Replace all invalid characters with underscores
-    let s = RE_INVAL_CHR.replace_all(fname, "_");
+
+    // Replace all accentuated characters
+    let mut s_first = fname.to_string();
+    let mut byte = [0;1];
+
+    for (old_char, new_char) in HASHMAP.iter() {
+        let char_as_str = new_char.encode_utf8(&mut byte);
+        s_first = s_first.replace(&old_char.to_string(), char_as_str);
+    }
+
+    // Replace all remaining invalid characters with underscores
+    let s = RE_INVAL_CHR.replace_all(s_first.as_str(), "_");
     // Remove duplicate underscores
     let s = RE_UND_DUP.replace_all(&s, "_");
     // Remove underscores before dot ('.')
