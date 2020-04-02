@@ -4,12 +4,14 @@ extern crate lazy_static;
 extern crate clap;
 extern crate promptly;
 extern crate regex;
+extern crate deunicode;
 #[macro_use]
 #[cfg(test)]
 extern crate maplit;
 
 use promptly::prompt_default;
 use regex::Regex;
+use deunicode::deunicode;
 
 use std::ffi::OsStr;
 use std::fs::read_dir;
@@ -55,9 +57,16 @@ mod tests {
         assert_eq!(f("__a___b___c__"), "a_b_c");
         assert_eq!(f("  a   b   c  "), "a_b_c");
         assert_eq!(f("a-b-c"), "a-b-c");
-        assert_eq!(f("🤔😀😃😄😁😆😅emojis.txt"), "emojis.txt");
-        assert_eq!(f("Game (Not Pirated 😉).rar"), "Game_Not_Pirated.rar");
+        assert_eq!(f("🤔😀😃😄😁😆😅emojis.txt"), "thinking_grinning_smiley_smile_grin_laughing_sweat_smile_emojis.txt");
+        assert_eq!(f("Æneid"), "AEneid");
+        assert_eq!(f("étude"), "etude");
+        assert_eq!(f("北亰"), "Bei_Jing");
+        assert_eq!(f("げんまい茶"), "genmaiCha");
+        assert_eq!(f("🦄☣"), "unicorn_biohazard");
+        assert_eq!(f("Game (Not Pirated 😉).rar"), "Game_Not_Pirated_wink.rar");
         assert_eq!(f("--fake-flag"), "fake-flag");
+        assert_eq!(f("Évidemment"), "Evidemment");
+        assert_eq!(f("àà_y_ü"), "aa_y_u");
     }
 
     #[test]
@@ -293,14 +302,14 @@ mod tests {
         f(
             &["unf", "-f", s],
             btreeset![FileTreeNode::File(s.to_string())],
-            btreeset![FileTreeNode::File("emojis.txt".to_string())],
+            btreeset![FileTreeNode::File("thinking_grinning_smiley_smile_grin_laughing_sweat_smile_emojis.txt".to_string())],
         );
 
         let s = "Game (Not Pirated 😉).rar";
         f(
             &["unf", "-f", s],
             btreeset![FileTreeNode::File(s.to_string())],
-            btreeset![FileTreeNode::File("Game_Not_Pirated.rar".to_string())],
+            btreeset![FileTreeNode::File("Game_Not_Pirated_wink.rar".to_string())],
         );
 
         f(
@@ -380,8 +389,11 @@ fn unixize_filename_str(fname: &str) -> String {
         static ref RE_UND_DUP: Regex = Regex::new("_+").unwrap();
         static ref RE_UND_DOT: Regex = Regex::new("_+\\.").unwrap();
     }
-    // Replace all invalid characters with underscores
-    let s = RE_INVAL_CHR.replace_all(fname, "_");
+
+    // Replace all UNICODE characters with their ASCII counterparts
+    let s = deunicode(fname);
+    // Replace all remaining invalid characters with underscores
+    let s = RE_INVAL_CHR.replace_all(&s, "_");
     // Remove duplicate underscores
     let s = RE_UND_DUP.replace_all(&s, "_");
     // Remove underscores before dot ('.')

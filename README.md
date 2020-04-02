@@ -38,12 +38,12 @@ unf [FLAGS] <PATH>...
 
 ``` sh
 $ unf 🤔😀😃😄😁😆😅emojis.txt
-rename '🤔😀😃😄😁😆😅emojis.txt' -> 'emojis.txt'? (y/N): y
+rename '🤔😀😃😄😁😆😅emojis.txt' -> 'thinking_grinning_smiley_smile_grin_laughing_sweat_smile_emojis.txt'? (y/N): y
 ```
 
 ``` sh
 $ unf -f 'Game (Not Pirated 😉).rar'
-rename 'Game (Not Pirated 😉).rar' -> 'Game_Not_Pirated.rar'
+rename 'Game (Not Pirated 😉).rar' -> 'Game_Not_Pirated_wink.rar'
 ```
 
 ### Recursion
