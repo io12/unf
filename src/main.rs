@@ -1,14 +1,13 @@
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
-extern crate clap;
-#[macro_use]
 #[cfg(test)]
 extern crate maplit;
 
 use deunicode::deunicode;
 use promptly::prompt_default;
 use regex::Regex;
+use structopt::StructOpt;
 
 use std::ffi::OsStr;
 use std::fs::read_dir;
@@ -22,10 +21,38 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 struct FilenameParts {
     /// From the beginning of the filename to the final dot before the extension
     stem: String,
+
     /// The zero-padded collision-resolving number
     num: Option<usize>,
+
     /// The file extension, not including the dot
     ext: Option<String>,
+}
+
+/// Parsed command-line arguments
+#[derive(StructOpt, Debug)]
+#[structopt(about)]
+struct Opts {
+    /// The paths of filenames to unixize
+    paths: Vec<PathBuf>,
+
+    /// Program flags
+    #[structopt(flatten)]
+    flags: Flags,
+}
+
+/// Parsed command-line flags
+#[derive(StructOpt, Debug, Copy, Clone)]
+#[structopt(about)]
+struct Flags {
+    /// Recursively unixize filenames in directories. If some of the specified
+    /// paths are directories, unf will operate recursively on their contents.
+    #[structopt(long, short)]
+    recursive: bool,
+
+    /// Do not interactively prompt to rename each file.
+    #[structopt(long, short)]
+    force: bool,
 }
 
 const FILENAME_NUM_DIGITS: usize = 3;
@@ -285,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_try_main_with_args() {
+    fn test_main_opts() {
         // Helper function to create a specified file structure and
         // run `unf` with the specified args. It then asserts that the
         // resulting file structure matches the expected result.
@@ -293,9 +320,8 @@ mod tests {
             let path = create_tree_tmp(tree);
             std::env::set_current_dir(&path).unwrap();
 
-            let mut app = make_clap_app();
-            let args = app.get_matches_from_safe_borrow(args).unwrap();
-            try_main_with_args(args).unwrap();
+            let opts = Opts::from_iter(args);
+            main_opts(opts).unwrap();
 
             let result = scan_tree(&path);
             assert_eq!(expected, result);
@@ -408,28 +434,17 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
-/// Use clap crate to create argument parser
-fn make_clap_app() -> clap::App<'static, 'static> {
-    app_from_crate!().args_from_usage(
-        "<PATH>... 'The paths of filenames to unixize'
-             -r --recursive 'Recursively unixize filenames in directories. If \
-                             some of the specified paths are directories, unf \
-                             will operate recursively on their contents'
-             -f --force 'Do not interactively prompt to rename each file'",
-    )
-}
-
 /// Like `unixize_filename()`, but only operate on children of `path`
-fn unixize_children(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
+fn unixize_children(path: &Path, flags: Flags) -> Result<()> {
     for ent in read_dir(path)? {
-        unixize_filename(&ent?.path(), args)?;
+        unixize_filename(&ent?.path(), flags)?;
     }
     Ok(())
 }
 
 /// Unixize the filename(s) specified by a path, according to the
 /// supplied arguments
-fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
+fn unixize_filename(path: &Path, flags: Flags) -> Result<()> {
     lazy_static! {
         static ref CWD: PathBuf = std::env::current_dir().unwrap();
     }
@@ -440,16 +455,16 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         Some(s) => s,
         // If the path has no basename (for example, if it's `.` or `..`), only
         // unixize children
-        None => return unixize_children(path, args),
+        None => return unixize_children(path, flags),
     };
     let new_basename = unixize_filename_str(basename);
 
     let stat = std::fs::metadata(path)?;
     let is_dir = stat.is_dir();
-    let should_prompt = !args.is_present("force");
+    let should_prompt = !flags.force;
 
     // Determine whether to recurse, possibly by prompting the user
-    let recurse = args.is_present("recursive")
+    let recurse = flags.recursive
         && is_dir
         && (!should_prompt || {
             let msg = format!("descend into directory '{}'?", path.display());
@@ -457,7 +472,7 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
         });
 
     if recurse {
-        unixize_children(path, args)?;
+        unixize_children(path, flags)?;
     }
 
     // Skip files that already have unix-friendly names; this is done
@@ -586,18 +601,16 @@ fn merge_filename(parts: &FilenameParts) -> String {
     s
 }
 
-fn try_main_with_args(args: clap::ArgMatches<'static>) -> Result<()> {
-    for path in args.values_of("PATH").expect("no arguments").map(Path::new) {
-        unixize_filename(path, &args)?;
+fn main_opts(opts: Opts) -> Result<()> {
+    for path in opts.paths {
+        unixize_filename(&path, opts.flags)?;
     }
 
     Ok(())
 }
 
 fn try_main() -> Result<()> {
-    let args = make_clap_app().get_matches();
-
-    try_main_with_args(args)
+    main_opts(Opts::from_args())
 }
 
 fn main() {
