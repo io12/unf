@@ -16,13 +16,16 @@ use std::path::{Path, PathBuf};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-// Struct representing a filename that can be split, modified, and
-// merged back into a filename string
+/// Struct representing a filename that can be split, modified, and
+/// merged back into a filename string
 #[derive(PartialEq, Debug)]
 struct FilenameParts {
-    stem: String, // From the beginning of the filename to the final dot before the extension
-    num: Option<usize>, // The zero-padded collision-resolving number
-    ext: Option<String>, // The file extension, not including the dot
+    /// From the beginning of the filename to the final dot before the extension
+    stem: String,
+    /// The zero-padded collision-resolving number
+    num: Option<usize>,
+    /// The file extension, not including the dot
+    ext: Option<String>,
 }
 
 const FILENAME_NUM_DIGITS: usize = 3;
@@ -37,7 +40,7 @@ mod tests {
 
     use super::*;
 
-    // Representation of a virtual file tree used for test cases
+    /// Representation of a virtual file tree used for test cases
     type FileTree = BTreeSet<FileTreeNode>;
 
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -205,7 +208,7 @@ mod tests {
         );
     }
 
-    // Scan the file structure in a path to `FileTree`
+    /// Scan the file structure in a path to `FileTree`
     fn scan_tree(path: &Path) -> FileTree {
         let mut tree = FileTree::new();
         for ent in read_dir(path).unwrap() {
@@ -222,7 +225,7 @@ mod tests {
         tree
     }
 
-    // Actually create the file structure represented by a `FileTree`
+    /// Actually create the file structure represented by a `FileTree`
     fn create_tree(tree: FileTree, path: &Path) {
         for ent in tree {
             match ent {
@@ -238,8 +241,8 @@ mod tests {
         }
     }
 
-    // Create the file structure represented by `FileTree` in a
-    // temporary directory and return its path
+    /// Create the file structure represented by `FileTree` in a
+    /// temporary directory and return its path
     fn create_tree_tmp(tree: FileTree) -> PathBuf {
         let path = TempDir::new("").unwrap().into_path();
         create_tree(tree, &path);
@@ -382,9 +385,9 @@ mod tests {
     }
 }
 
-// Clean up a string representing a filename, replacing
-// unix-unfriendly characters (like spaces, parentheses, etc.) See the
-// unit tests for examples.
+/// Clean up a string representing a filename, replacing
+/// unix-unfriendly characters (like spaces, parentheses, etc.) See the
+/// unit tests for examples.
 fn unixize_filename_str(fname: &str) -> String {
     lazy_static! {
         static ref RE_INVAL_CHR: Regex = Regex::new("[^a-zA-Z0-9._-]").unwrap();
@@ -405,7 +408,7 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
-// Use clap crate to create argument parser
+/// Use clap crate to create argument parser
 fn make_clap_app() -> clap::App<'static, 'static> {
     app_from_crate!().args_from_usage(
         "<PATH>... 'The paths of filenames to unixize'
@@ -416,7 +419,7 @@ fn make_clap_app() -> clap::App<'static, 'static> {
     )
 }
 
-// Like `unixize_filename()`, but only operate on children of `path`
+/// Like `unixize_filename()`, but only operate on children of `path`
 fn unixize_children(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
     for ent in read_dir(path)? {
         unixize_filename(&ent?.path(), args)?;
@@ -424,8 +427,8 @@ fn unixize_children(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     Ok(())
 }
 
-// Unixize the filename(s) specified by a path, according to the
-// supplied arguments
+/// Unixize the filename(s) specified by a path, according to the
+/// supplied arguments
 fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()> {
     lazy_static! {
         static ref CWD: PathBuf = std::env::current_dir().unwrap();
@@ -483,8 +486,8 @@ fn unixize_filename(path: &Path, args: &clap::ArgMatches<'static>) -> Result<()>
     Ok(())
 }
 
-// Split, modify, and re-merge filename to increment the
-// collision-resolving number, or create it if non-existent
+/// Split, modify, and re-merge filename to increment the
+/// collision-resolving number, or create it if non-existent
 fn inc_filename_num(filename: &str) -> String {
     let FilenameParts { stem, num, ext } = split_filename(filename);
     let num = match num {
@@ -494,10 +497,10 @@ fn inc_filename_num(filename: &str) -> String {
     merge_filename(&FilenameParts { stem, num, ext })
 }
 
-// Check if the target path can be written to without clobbering an
-// existing file. If it can't, change it to a unique name. Note that
-// this function requires that the filename is non-empty and valid
-// UTF-8.
+/// Check if the target path can be written to without clobbering an
+/// existing file. If it can't, change it to a unique name. Note that
+/// this function requires that the filename is non-empty and valid
+/// UTF-8.
 fn resolve_collision(path: &Path) -> PathBuf {
     if path.exists() {
         let filename = path
@@ -563,8 +566,8 @@ fn split_filename(filename: &str) -> FilenameParts {
     FilenameParts { stem, num, ext }
 }
 
-// Format the collision-resolving number of a filename to a
-// zero-padded string
+/// Format the collision-resolving number of a filename to a
+/// zero-padded string
 fn format_filename_num(num: usize) -> String {
     format!("{:0width$}", num, width = FILENAME_NUM_DIGITS)
 }
