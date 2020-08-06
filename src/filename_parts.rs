@@ -79,146 +79,151 @@ impl FilenameParts {
     }
 }
 
-#[test]
-fn test_from_filename() {
-    assert_eq!(
-        FilenameParts::from_filename("a"),
-        FilenameParts {
-            stem: "a".to_string(),
-            num: None,
-            ext: None,
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename("a."),
-        FilenameParts {
-            stem: "a".to_string(),
-            num: None,
-            ext: Some("".to_string()),
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename(".a"),
-        FilenameParts {
-            stem: "".to_string(),
-            num: None,
-            ext: Some("a".to_string()),
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename("a_0000"),
-        FilenameParts {
-            stem: "a_0000".to_string(),
-            num: None,
-            ext: None,
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename("a_137"),
-        FilenameParts {
-            stem: "a".to_string(),
-            num: Some(137),
-            ext: None,
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename("a_000.txt"),
-        FilenameParts {
-            stem: "a".to_string(),
-            num: Some(0),
-            ext: Some("txt".to_string()),
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename("a____000.txt"),
-        FilenameParts {
-            stem: "a___".to_string(),
-            num: Some(0),
-            ext: Some("txt".to_string()),
-        }
-    );
-    assert_eq!(
-        FilenameParts::from_filename(".x._._._222.txt"),
-        FilenameParts {
-            stem: ".x._._.".to_string(),
-            num: Some(222),
-            ext: Some("txt".to_string()),
-        }
-    );
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_merge() {
-    assert_eq!(
-        "a",
-        FilenameParts {
-            stem: "a".to_string(),
-            num: None,
-            ext: None,
-        }
-        .merge()
-    );
-    assert_eq!(
-        "a.",
-        FilenameParts {
-            stem: "a".to_string(),
-            num: None,
-            ext: Some("".to_string()),
-        }
-        .merge()
-    );
-    assert_eq!(
-        ".a",
-        FilenameParts {
-            stem: "".to_string(),
-            num: None,
-            ext: Some("a".to_string()),
-        }
-        .merge()
-    );
-    assert_eq!(
-        "a_0000",
-        FilenameParts {
-            stem: "a_0000".to_string(),
-            num: None,
-            ext: None,
-        }
-        .merge()
-    );
-    assert_eq!(
-        "a_137",
-        FilenameParts {
-            stem: "a".to_string(),
-            num: Some(137),
-            ext: None,
-        }
-        .merge()
-    );
-    assert_eq!(
-        "a_000.txt",
-        FilenameParts {
-            stem: "a".to_string(),
-            num: Some(0),
-            ext: Some("txt".to_string()),
-        }
-        .merge()
-    );
-    assert_eq!(
-        "a____000.txt",
-        FilenameParts {
-            stem: "a___".to_string(),
-            num: Some(0),
-            ext: Some("txt".to_string()),
-        }
-        .merge()
-    );
-    assert_eq!(
-        ".x._._._222.txt",
-        FilenameParts {
-            stem: ".x._._.".to_string(),
-            num: Some(222),
-            ext: Some("txt".to_string()),
-        }
-        .merge()
-    );
+    #[test]
+    fn from_filename() {
+        assert_eq!(
+            FilenameParts::from_filename("a"),
+            FilenameParts {
+                stem: "a".to_string(),
+                num: None,
+                ext: None,
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename("a."),
+            FilenameParts {
+                stem: "a".to_string(),
+                num: None,
+                ext: Some("".to_string()),
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename(".a"),
+            FilenameParts {
+                stem: "".to_string(),
+                num: None,
+                ext: Some("a".to_string()),
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename("a_0000"),
+            FilenameParts {
+                stem: "a_0000".to_string(),
+                num: None,
+                ext: None,
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename("a_137"),
+            FilenameParts {
+                stem: "a".to_string(),
+                num: Some(137),
+                ext: None,
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename("a_000.txt"),
+            FilenameParts {
+                stem: "a".to_string(),
+                num: Some(0),
+                ext: Some("txt".to_string()),
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename("a____000.txt"),
+            FilenameParts {
+                stem: "a___".to_string(),
+                num: Some(0),
+                ext: Some("txt".to_string()),
+            }
+        );
+        assert_eq!(
+            FilenameParts::from_filename(".x._._._222.txt"),
+            FilenameParts {
+                stem: ".x._._.".to_string(),
+                num: Some(222),
+                ext: Some("txt".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn merge() {
+        assert_eq!(
+            "a",
+            FilenameParts {
+                stem: "a".to_string(),
+                num: None,
+                ext: None,
+            }
+            .merge()
+        );
+        assert_eq!(
+            "a.",
+            FilenameParts {
+                stem: "a".to_string(),
+                num: None,
+                ext: Some("".to_string()),
+            }
+            .merge()
+        );
+        assert_eq!(
+            ".a",
+            FilenameParts {
+                stem: "".to_string(),
+                num: None,
+                ext: Some("a".to_string()),
+            }
+            .merge()
+        );
+        assert_eq!(
+            "a_0000",
+            FilenameParts {
+                stem: "a_0000".to_string(),
+                num: None,
+                ext: None,
+            }
+            .merge()
+        );
+        assert_eq!(
+            "a_137",
+            FilenameParts {
+                stem: "a".to_string(),
+                num: Some(137),
+                ext: None,
+            }
+            .merge()
+        );
+        assert_eq!(
+            "a_000.txt",
+            FilenameParts {
+                stem: "a".to_string(),
+                num: Some(0),
+                ext: Some("txt".to_string()),
+            }
+            .merge()
+        );
+        assert_eq!(
+            "a____000.txt",
+            FilenameParts {
+                stem: "a___".to_string(),
+                num: Some(0),
+                ext: Some("txt".to_string()),
+            }
+            .merge()
+        );
+        assert_eq!(
+            ".x._._._222.txt",
+            FilenameParts {
+                stem: ".x._._.".to_string(),
+                num: Some(222),
+                ext: Some("txt".to_string()),
+            }
+            .merge()
+        );
+    }
 }
