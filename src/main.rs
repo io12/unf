@@ -11,6 +11,7 @@ use filename_parts::FilenameParts;
 use opts::Flags;
 use opts::Opts;
 
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::path::Path;
@@ -277,12 +278,11 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
-fn read_children_names<FS: GenFS>(fs: &FS, cwd: &Path, dir: &Path) -> Result<Vec<OsString>> {
-    let mut children_names = fs
+fn read_children_names<FS: GenFS>(fs: &FS, cwd: &Path, dir: &Path) -> Result<BTreeSet<OsString>> {
+    let children_names = fs
         .read_dir(cwd.join(dir))?
         .map(|result_ent| result_ent.map(|ent| ent.file_name()))
-        .collect::<std::io::Result<Vec<OsString>>>()?;
-    children_names.sort();
+        .collect::<std::io::Result<BTreeSet<OsString>>>()?;
     Ok(children_names)
 }
 
