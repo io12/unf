@@ -30,6 +30,7 @@ pub struct Flags {
     #[structopt(long, short)]
     pub force: bool,
 
+    /// Do not actually rename files. Only print the renames that would happen.
     #[structopt(long, short, conflicts_with = "force")]
     pub dry_run: bool,
 }

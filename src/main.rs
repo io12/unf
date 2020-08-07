@@ -433,10 +433,14 @@ fn load_mem_fs(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
     Ok(fs)
 }
 
+/// Run `unf` with parsed command-line arguments in `opts`, returning any error
 fn main_opts(opts: Opts) -> Result<()> {
     let cwd = std::env::current_dir()?;
 
     if opts.flags.dry_run {
+        // If using `--dry-run`, load the file tree into an in-memory filesystem
+        // and use that instead of the real filesystem. This is required for the
+        // collision handling to work.
         let fs = load_mem_fs(&opts.paths)?;
         unixize_paths(&fs, &cwd, &opts.paths, opts.flags)
     } else {
@@ -445,10 +449,12 @@ fn main_opts(opts: Opts) -> Result<()> {
     }
 }
 
+/// Run `unf` with passed program arguments, returning any error
 fn try_main() -> Result<()> {
     main_opts(Opts::from_args())
 }
 
+/// Run `unf` with passed program arguments, printing any error
 fn main() {
     if let Err(err) = try_main() {
         eprintln!("unf: error: {}", err);
