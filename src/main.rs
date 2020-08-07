@@ -29,12 +29,12 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::collections::BTreeSet;
 
     use rsfs::FileType;
     use tempfile::TempDir;
-
-    use super::*;
 
     /// Representation of a virtual file tree used for test cases
     type FileTree = BTreeSet<FileTreeNode>;
