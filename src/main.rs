@@ -12,25 +12,26 @@ use opts::Flags;
 use opts::Opts;
 
 use std::ffi::OsStr;
-use std::fs::read_dir;
+use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 
 use deunicode::deunicode;
 use promptly::prompt_default;
 use regex::Regex;
+use rsfs::DirEntry;
+use rsfs::GenFS;
+use rsfs::Metadata;
 use structopt::StructOpt;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[cfg(test)]
 mod tests {
-    extern crate tempdir;
-
     use std::collections::BTreeSet;
-    use std::fs::File;
 
-    use tempdir::TempDir;
+    use rsfs::FileType;
+    use tempfile::TempDir;
 
     use super::*;
 
@@ -67,14 +68,14 @@ mod tests {
     }
 
     /// Scan the file structure in a path to `FileTree`
-    fn scan_tree(path: &Path) -> FileTree {
+    fn scan_tree<FS: GenFS>(fs: &FS, path: &Path) -> FileTree {
         let mut tree = FileTree::new();
-        for ent in read_dir(path).unwrap() {
+        for ent in fs.read_dir(path).unwrap() {
             let ent = ent.unwrap();
             let is_dir = ent.file_type().unwrap().is_dir();
             let filename = ent.file_name().into_string().unwrap();
             let ent = if is_dir {
-                FileTreeNode::Dir(filename, scan_tree(&ent.path()))
+                FileTreeNode::Dir(filename, scan_tree(fs, &ent.path()))
             } else {
                 FileTreeNode::File(filename)
             };
@@ -84,16 +85,16 @@ mod tests {
     }
 
     /// Actually create the file structure represented by a `FileTree`
-    fn create_tree(tree: FileTree, path: &Path) {
+    fn create_tree<FS: GenFS>(fs: &FS, tree: FileTree, path: &Path) {
         for ent in tree {
             match ent {
                 FileTreeNode::File(name) => {
-                    File::create(path.join(name)).unwrap();
+                    fs.create_file(path.join(name)).unwrap();
                 }
                 FileTreeNode::Dir(name, ents) => {
                     let path = path.join(name);
-                    std::fs::create_dir(&path).unwrap();
-                    create_tree(ents, &path);
+                    fs.create_dir(&path).unwrap();
+                    create_tree(fs, ents, &path);
                 }
             }
         }
@@ -102,22 +103,32 @@ mod tests {
     /// Create the file structure represented by `FileTree` in a
     /// temporary directory and return its path
     fn create_tree_tmp(tree: FileTree) -> PathBuf {
-        let path = TempDir::new("").unwrap().into_path();
-        create_tree(tree, &path);
+        let fs = rsfs::disk::FS;
+        let path = TempDir::new().unwrap().into_path();
+        create_tree(&fs, tree, &path);
         path
     }
 
     #[test]
     fn test_resolve_collision() {
-        let tmp_dir = TempDir::new("").unwrap().into_path();
+        let fs = rsfs::disk::FS;
+        let root = TempDir::new().unwrap();
+        let root = root.path();
+        test_resolve_collision_fs(&fs, root);
 
+        let fs = rsfs::mem::FS::new();
+        let root = Path::new("/");
+        test_resolve_collision_fs(&fs, root);
+    }
+
+    fn test_resolve_collision_fs<FS: GenFS>(fs: &FS, root: &Path) {
         // Helper function taking a collider filename returning a
         // string representing the resolved collision
         let f = |filename: &str| -> String {
-            let path = tmp_dir.join(filename);
-            File::create(&path).unwrap();
+            let path = root.join(filename);
+            fs.create_file(&path).unwrap();
 
-            resolve_collision(&path)
+            resolve_collision(fs, root, &path)
                 .file_name()
                 .unwrap()
                 .to_str()
@@ -154,7 +165,8 @@ mod tests {
             let opts = Opts::from_iter(args);
             main_opts(opts).unwrap();
 
-            let result = scan_tree(&path);
+            let fs = rsfs::disk::FS;
+            let result = scan_tree(&fs, &path);
             assert_eq!(expected, result);
         };
 
@@ -265,34 +277,40 @@ fn unixize_filename_str(fname: &str) -> String {
     s.to_string()
 }
 
-/// Like `unixize_filename()`, but only operate on children of `path`
-fn unixize_children(path: &Path, flags: Flags) -> Result<()> {
-    for ent in read_dir(path)? {
-        unixize_filename(&ent?.path(), flags)?;
+fn read_children_names<FS: GenFS>(fs: &FS, cwd: &Path, dir: &Path) -> Result<Vec<OsString>> {
+    let mut children_names = fs
+        .read_dir(cwd.join(dir))?
+        .map(|result_ent| result_ent.map(|ent| ent.file_name()))
+        .collect::<std::io::Result<Vec<OsString>>>()?;
+    children_names.sort();
+    Ok(children_names)
+}
+
+/// Like `unixize_path()`, but only operate on children of `dir`
+fn unixize_children<FS: GenFS>(fs: &FS, cwd: &Path, dir: &Path, flags: Flags) -> Result<()> {
+    for file_name in read_children_names(fs, cwd, dir)? {
+        let path = dir.join(file_name);
+        unixize_path(fs, cwd, &path, flags)?;
     }
     Ok(())
 }
 
 /// Unixize the filename(s) specified by a path, according to the
 /// supplied arguments
-fn unixize_filename(path: &Path, flags: Flags) -> Result<()> {
-    lazy_static! {
-        static ref CWD: PathBuf = std::env::current_dir().unwrap();
-    }
-
-    let parent = path.parent().unwrap_or(&CWD);
+fn unixize_path<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path, flags: Flags) -> Result<()> {
+    let parent = path.parent().unwrap_or(cwd);
     let basename = &path.file_name().map(OsStr::to_string_lossy);
     let basename = match basename {
         Some(s) => s,
         // If the path has no basename (for example, if it's `.` or `..`), only
         // unixize children
-        None => return unixize_children(path, flags),
+        None => return unixize_children(fs, cwd, path, flags),
     };
     let new_basename = unixize_filename_str(basename);
 
-    let stat = std::fs::metadata(path)?;
+    let stat = fs.metadata(cwd.join(path))?;
     let is_dir = stat.is_dir();
-    let should_prompt = !flags.force;
+    let should_prompt = !flags.force && !flags.dry_run;
 
     // Determine whether to recurse, possibly by prompting the user
     let recurse = flags.recursive
@@ -303,7 +321,7 @@ fn unixize_filename(path: &Path, flags: Flags) -> Result<()> {
         });
 
     if recurse {
-        unixize_children(path, flags)?;
+        unixize_children(fs, cwd, path, flags)?;
     }
 
     // Skip files that already have unix-friendly names; this is done
@@ -314,8 +332,18 @@ fn unixize_filename(path: &Path, flags: Flags) -> Result<()> {
     }
 
     let new_path = parent.join(new_basename);
-    let new_path = resolve_collision(&new_path);
-    let msg = format!("rename '{}' -> '{}'", path.display(), new_path.display());
+    let new_path = resolve_collision(fs, cwd, &new_path);
+    let rename_prefix = if flags.dry_run {
+        "would rename"
+    } else {
+        "rename"
+    };
+    let msg = format!(
+        "{} '{}' -> '{}'",
+        rename_prefix,
+        path.display(),
+        new_path.display()
+    );
     if should_prompt {
         // Interactively prompt whether to rename the file, skipping
         // if the user says no
@@ -328,7 +356,7 @@ fn unixize_filename(path: &Path, flags: Flags) -> Result<()> {
         println!("{}", msg);
     }
 
-    std::fs::rename(path, new_path)?;
+    fs.rename(cwd.join(path), cwd.join(new_path))?;
     Ok(())
 }
 
@@ -347,8 +375,8 @@ fn inc_filename_num(filename: &str) -> String {
 /// existing file. If it can't, change it to a unique name. Note that
 /// this function requires that the filename is non-empty and valid
 /// UTF-8.
-fn resolve_collision(path: &Path) -> PathBuf {
-    if path.exists() {
+fn resolve_collision<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path) -> PathBuf {
+    if path_exists(fs, cwd, path) {
         let filename = path
             .file_name()
             .expect("filename is empty")
@@ -359,19 +387,62 @@ fn resolve_collision(path: &Path) -> PathBuf {
 
         // Recursively resolve the new filename. This is how the
         // collision-resolving number is incremented.
-        resolve_collision(&path)
+        resolve_collision(fs, cwd, &path)
     } else {
         // File does not exist; we're done!
         path.to_path_buf()
     }
 }
 
-fn main_opts(opts: Opts) -> Result<()> {
-    for path in opts.paths {
-        unixize_filename(&path, opts.flags)?;
+/// Returns `true` if the path points at an existing entity.
+fn path_exists<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path) -> bool {
+    fs.metadata(cwd.join(path)).is_ok()
+}
+
+fn unixize_paths<FS: GenFS>(fs: &FS, cwd: &Path, paths: &[PathBuf], flags: Flags) -> Result<()> {
+    for path in paths {
+        unixize_path(fs, cwd, &path, flags)?;
+    }
+    Ok(())
+}
+
+fn load_mem_fs_insert(fs: &rsfs::mem::FS, path: &Path) -> Result<()> {
+    if path.is_dir() {
+        fs.create_dir(path)?;
+        for ent in path.read_dir()? {
+            let path = ent?.path();
+            load_mem_fs_insert(fs, &path)?;
+        }
+    } else {
+        fs.create_file(path)?;
+    }
+    Ok(())
+}
+
+fn load_mem_fs(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
+    let fs = rsfs::mem::FS::new();
+
+    for path in paths {
+        let path = path.canonicalize()?;
+        if let Some(parent) = path.parent() {
+            fs.create_dir_all(parent)?;
+        }
+        load_mem_fs_insert(&fs, &path)?;
     }
 
-    Ok(())
+    Ok(fs)
+}
+
+fn main_opts(opts: Opts) -> Result<()> {
+    let cwd = std::env::current_dir()?;
+
+    if opts.flags.dry_run {
+        let fs = load_mem_fs(&opts.paths)?;
+        unixize_paths(&fs, &cwd, &opts.paths, opts.flags)
+    } else {
+        let fs = rsfs::disk::FS;
+        unixize_paths(&fs, &cwd, &opts.paths, opts.flags)
+    }
 }
 
 fn try_main() -> Result<()> {

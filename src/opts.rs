@@ -9,6 +9,7 @@ use structopt::StructOpt;
 #[structopt(about)]
 pub struct Opts {
     /// The paths of filenames to unixize
+    #[structopt(required = true)]
     pub paths: Vec<PathBuf>,
 
     /// Program flags
@@ -28,4 +29,7 @@ pub struct Flags {
     /// Do not interactively prompt to rename each file.
     #[structopt(long, short)]
     pub force: bool,
+
+    #[structopt(long, short, conflicts_with = "force")]
+    pub dry_run: bool,
 }
