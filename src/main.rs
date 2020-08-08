@@ -5,6 +5,7 @@ extern crate lazy_static;
 extern crate maplit;
 
 mod filename_parts;
+mod mem_fs;
 mod opts;
 
 use filename_parts::FilenameParts;
@@ -406,63 +407,6 @@ fn unixize_paths<FS: GenFS>(fs: &FS, cwd: &Path, paths: &[PathBuf], flags: Flags
     Ok(())
 }
 
-fn load_mem_fs_insert(fs: &rsfs::mem::FS, path: &Path) -> Result<()> {
-    if path.is_dir() {
-        fs.create_dir(path)?;
-        for ent in path.read_dir()? {
-            let path = ent?.path();
-            load_mem_fs_insert(fs, &path)?;
-        }
-    } else {
-        fs.create_file(path)?;
-    }
-    Ok(())
-}
-
-/// Load the parts of the physical filesystem referenced by `paths` into a new
-/// in-memory filesystem. After the `paths` are canonicalized, all leading
-/// components and children will be created in the memory filesystem.
-///
-/// ## Example
-///
-/// A file structure
-/// ```text
-/// /tmp
-/// ├── a
-/// │   └── b
-/// ├── c
-/// └── foo
-///     ├── bar
-///     └── baz
-///         └── a
-/// ```
-/// with `paths` = `["a", "foo/baz"]` and a working directory of `/tmp` would
-/// return an in-memory filesystem:
-/// ```text
-/// /tmp
-/// ├── a
-/// │   └── b
-/// └── foo
-///     └── baz
-///         └── a
-/// ```
-fn load_mem_fs(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
-    let fs = rsfs::mem::FS::new();
-
-    for path in paths {
-        // Create all parents of canonicalized path
-        let path = path.canonicalize()?;
-        if let Some(parent) = path.parent() {
-            fs.create_dir_all(parent)?;
-        }
-
-        // Recursively create path and children
-        load_mem_fs_insert(&fs, &path)?;
-    }
-
-    Ok(fs)
-}
-
 /// Run `unf` with parsed command-line arguments in `opts`, returning any error
 fn main_opts(opts: Opts) -> Result<()> {
     let cwd = std::env::current_dir()?;
@@ -471,7 +415,7 @@ fn main_opts(opts: Opts) -> Result<()> {
         // If using `--dry-run`, load the file tree into an in-memory filesystem
         // and use that instead of the real filesystem. This is required for the
         // collision handling to work.
-        let fs = load_mem_fs(&opts.paths)?;
+        let fs = mem_fs::load(&opts.paths)?;
         unixize_paths(&fs, &cwd, &opts.paths, opts.flags)
     } else {
         let fs = rsfs::disk::FS;
