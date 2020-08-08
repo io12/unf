@@ -419,14 +419,44 @@ fn load_mem_fs_insert(fs: &rsfs::mem::FS, path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Load the parts of the physical filesystem referenced by `paths` into a new
+/// in-memory filesystem. After the `paths` are canonicalized, all leading
+/// components and children will be created in the memory filesystem.
+///
+/// ## Example
+///
+/// A file structure
+/// ```text
+/// /tmp
+/// ├── a
+/// │   └── b
+/// ├── c
+/// └── foo
+///     ├── bar
+///     └── baz
+///         └── a
+/// ```
+/// with `paths` = `["a", "foo/baz"]` and a working directory of `/tmp` would
+/// return an in-memory filesystem:
+/// ```text
+/// /tmp
+/// ├── a
+/// │   └── b
+/// └── foo
+///     └── baz
+///         └── a
+/// ```
 fn load_mem_fs(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
     let fs = rsfs::mem::FS::new();
 
     for path in paths {
+        // Create all parents of canonicalized path
         let path = path.canonicalize()?;
         if let Some(parent) = path.parent() {
             fs.create_dir_all(parent)?;
         }
+
+        // Recursively create path and children
         load_mem_fs_insert(&fs, &path)?;
     }
 
