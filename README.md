@@ -1,6 +1,6 @@
-[![](https://img.shields.io/crates/v/unf)](https://crates.io/crates/unf)
-![tests](https://github.com/io12/unf/workflows/tests/badge.svg)
-![cargo-audit](https://github.com/io12/unf/workflows/cargo-audit/badge.svg)
+[![crates.io](https://img.shields.io/crates/v/unf)](https://crates.io/crates/unf)
+[![tests](https://github.com/io12/unf/workflows/tests/badge.svg)](https://github.com/io12/unf/actions?query=workflow%3Atests)
+[![cargo-audit](https://github.com/io12/unf/workflows/cargo-audit/badge.svg)](https://github.com/io12/unf/actions?query=workflow%3Acargo-audit)
 [![Coverage Status](https://coveralls.io/repos/github/io12/unf/badge.svg?branch=master)](https://coveralls.io/github/io12/unf?branch=master)
 
 # `unf`
