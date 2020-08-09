@@ -1,4 +1,5 @@
 [![](https://img.shields.io/crates/v/unf)](https://crates.io/crates/unf)
+[![Coverage Status](https://coveralls.io/repos/github/io12/unf/badge.svg?branch=master)](https://coveralls.io/github/io12/unf?branch=master)
 
 # `unf`
 
