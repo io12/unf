@@ -66,3 +66,9 @@ pub fn load(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
 
     Ok(fs)
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_load() {}
+}

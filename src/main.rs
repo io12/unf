@@ -1,8 +1,5 @@
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
-#[cfg(test)]
-extern crate maplit;
 
 mod filename_parts;
 mod mem_fs;
@@ -32,19 +29,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 mod tests {
     use super::*;
 
-    use std::collections::BTreeSet;
-
-    use rsfs::FileType;
     use tempfile::TempDir;
-
-    /// Representation of a virtual file tree used for test cases
-    type FileTree = BTreeSet<FileTreeNode>;
-
-    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-    enum FileTreeNode {
-        File(String),
-        Dir(String, FileTree),
-    }
 
     #[test]
     fn test_unixize_filename_str() {
@@ -67,48 +52,6 @@ mod tests {
         assert_eq!(f("--fake-flag"), "fake-flag");
         assert_eq!(f("Évidemment"), "Evidemment");
         assert_eq!(f("àà_y_ü"), "aa_y_u");
-    }
-
-    /// Scan the file structure in a path to `FileTree`
-    fn scan_tree<FS: GenFS>(fs: &FS, path: &Path) -> FileTree {
-        let mut tree = FileTree::new();
-        for ent in fs.read_dir(path).unwrap() {
-            let ent = ent.unwrap();
-            let is_dir = ent.file_type().unwrap().is_dir();
-            let filename = ent.file_name().into_string().unwrap();
-            let ent = if is_dir {
-                FileTreeNode::Dir(filename, scan_tree(fs, &ent.path()))
-            } else {
-                FileTreeNode::File(filename)
-            };
-            tree.insert(ent);
-        }
-        tree
-    }
-
-    /// Actually create the file structure represented by a `FileTree`
-    fn create_tree<FS: GenFS>(fs: &FS, tree: FileTree, path: &Path) {
-        for ent in tree {
-            match ent {
-                FileTreeNode::File(name) => {
-                    fs.create_file(path.join(name)).unwrap();
-                }
-                FileTreeNode::Dir(name, ents) => {
-                    let path = path.join(name);
-                    fs.create_dir(&path).unwrap();
-                    create_tree(fs, ents, &path);
-                }
-            }
-        }
-    }
-
-    /// Create the file structure represented by `FileTree` in a
-    /// temporary directory and return its path
-    fn create_tree_tmp(tree: FileTree) -> PathBuf {
-        let fs = rsfs::disk::FS;
-        let path = TempDir::new().unwrap().into_path();
-        create_tree(&fs, tree, &path);
-        path
     }
 
     #[test]
@@ -146,113 +89,6 @@ mod tests {
         assert_eq!(f("e_1000.txt"), "e_1000_000.txt");
         assert_eq!(f("z___222.txt"), "z___223.txt");
         assert_eq!(f(".x._._._222.txt"), ".x._._._223.txt");
-    }
-
-    fn filenames_to_file_tree(filenames: &[&str]) -> FileTree {
-        filenames
-            .iter()
-            .map(|s| FileTreeNode::File(s.to_string()))
-            .collect()
-    }
-
-    #[test]
-    fn test_main_opts() {
-        // Helper function to create a specified file structure and
-        // run `unf` with the specified args. It then asserts that the
-        // resulting file structure matches the expected result.
-        let f = |args: &[&str], tree: FileTree, expected: FileTree| {
-            let path = create_tree_tmp(tree);
-            std::env::set_current_dir(&path).unwrap();
-
-            let opts = Opts::from_iter(args);
-            main_opts(opts).unwrap();
-
-            let fs = rsfs::disk::FS;
-            let result = scan_tree(&fs, &path);
-            assert_eq!(expected, result);
-        };
-
-        let s = "🤔😀😃😄😁😆😅emojis.txt";
-        f(
-            &["unf", "-f", s],
-            btreeset![FileTreeNode::File(s.to_string())],
-            btreeset![FileTreeNode::File(
-                "thinking_grinning_smiley_smile_grin_laughing_sweat_smile_emojis.txt".to_string()
-            )],
-        );
-
-        let s = "Game (Not Pirated 😉).rar";
-        f(
-            &["unf", "-f", s],
-            btreeset![FileTreeNode::File(s.to_string())],
-            btreeset![FileTreeNode::File("Game_Not_Pirated_wink.rar".to_string())],
-        );
-
-        f(
-            &["unf", "-rf", "My Files/", "My Folder"],
-            btreeset![
-                FileTreeNode::Dir("My Folder".to_string(), btreeset![]),
-                FileTreeNode::Dir(
-                    "My Files".to_string(),
-                    btreeset![
-                        FileTreeNode::File("Passwords :) .txt".to_string()),
-                        FileTreeNode::File("Another Cool Photo.JPG".to_string()),
-                        FileTreeNode::File("Wow Cool Photo.JPG".to_string()),
-                        FileTreeNode::File("Cool Photo.JPG".to_string()),
-                    ],
-                ),
-            ],
-            btreeset![
-                FileTreeNode::Dir("My_Folder".to_string(), btreeset![]),
-                FileTreeNode::Dir(
-                    "My_Files".to_string(),
-                    btreeset![
-                        FileTreeNode::File("Passwords.txt".to_string()),
-                        FileTreeNode::File("Another_Cool_Photo.JPG".to_string()),
-                        FileTreeNode::File("Wow_Cool_Photo.JPG".to_string()),
-                        FileTreeNode::File("Cool_Photo.JPG".to_string()),
-                    ],
-                ),
-            ],
-        );
-
-        let filenames = [
-            "--fake-flag.txt",
-            "fake-flag.txt",
-            "------fake-flag.txt",
-            " fake-flag.txt",
-            "\tfake-flag.txt",
-        ];
-        f(
-            &[&["unf", "-f", "--"], &filenames[..]].concat(),
-            filenames_to_file_tree(&filenames),
-            btreeset![
-                FileTreeNode::File("fake-flag.txt".to_string()),
-                FileTreeNode::File("fake-flag_000.txt".to_string()),
-                FileTreeNode::File("fake-flag_001.txt".to_string()),
-                FileTreeNode::File("fake-flag_002.txt".to_string()),
-                FileTreeNode::File("fake-flag_003.txt".to_string()),
-            ],
-        );
-
-        let filenames = [
-            "--fake-flag.txt",
-            "fake-flag.txt",
-            "------fake-flag.txt",
-            " fake-flag.txt",
-            "\tfake-flag.txt",
-        ];
-        f(
-            &["unf", ".", "-rf"],
-            filenames_to_file_tree(&filenames),
-            btreeset![
-                FileTreeNode::File("fake-flag.txt".to_string()),
-                FileTreeNode::File("fake-flag_000.txt".to_string()),
-                FileTreeNode::File("fake-flag_001.txt".to_string()),
-                FileTreeNode::File("fake-flag_002.txt".to_string()),
-                FileTreeNode::File("fake-flag_003.txt".to_string()),
-            ],
-        );
     }
 }
 
