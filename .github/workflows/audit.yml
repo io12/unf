@@ -1,6 +1,6 @@
 # Based on https://github.com/actions-rs/example/blob/master/.github/workflows/audit.yml
 
-name: Security audit
+name: cargo audit
 
 on:
   schedule:
