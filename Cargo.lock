@@ -564,7 +564,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unf"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "assert_cmd 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "deunicode 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
