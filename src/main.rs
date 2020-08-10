@@ -232,7 +232,14 @@ fn resolve_collision<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path) -> PathBuf {
 }
 
 /// Returns `true` if the path points at an existing entity.
-fn path_exists<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path) -> bool {
+fn path_exists<FS, P1, P2>(fs: &FS, cwd: P1, path: P2) -> bool
+where
+    FS: GenFS,
+    P1: AsRef<Path>,
+    P2: AsRef<Path>,
+{
+    let cwd = cwd.as_ref();
+    let path = path.as_ref();
     fs.metadata(cwd.join(path)).is_ok()
 }
 

@@ -3,7 +3,6 @@
 use crate::Result;
 
 use std::path::Path;
-use std::path::PathBuf;
 
 use rsfs::GenFS;
 
@@ -50,10 +49,12 @@ fn load_insert(fs: &rsfs::mem::FS, path: &Path) -> Result<()> {
 ///     └── baz
 ///         └── a
 /// ```
-pub fn load(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
+pub fn load<P: AsRef<Path>>(paths: &[P]) -> Result<rsfs::mem::FS> {
     let fs = rsfs::mem::FS::new();
 
     for path in paths {
+        let path = path.as_ref();
+
         // Create all parents of canonicalized path
         let path = path.canonicalize()?;
         if let Some(parent) = path.parent() {
@@ -69,6 +70,35 @@ pub fn load(paths: &[PathBuf]) -> Result<rsfs::mem::FS> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    use crate::path_exists;
+
     #[test]
-    fn test_load() {}
+    fn test_load() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let tmp = tmp.path();
+
+        // Create file tree
+        std::fs::create_dir_all(tmp.join("a")).unwrap();
+        std::fs::File::create(tmp.join("a/b")).unwrap();
+        std::fs::File::create(tmp.join("c")).unwrap();
+        std::fs::create_dir_all(tmp.join("foo/baz")).unwrap();
+        std::fs::File::create(tmp.join("foo/bar")).unwrap();
+        std::fs::File::create(tmp.join("foo/baz/a")).unwrap();
+
+        // Load file tree
+        std::env::set_current_dir(tmp).unwrap();
+        let fs = load(&["a", "foo/baz"]).unwrap();
+
+        // Check in-memory filesystem
+
+        assert!(!path_exists(&fs, tmp, "c"));
+        assert!(!path_exists(&fs, tmp, "foo/bar"));
+
+        assert!(path_exists(&fs, tmp, "a"));
+        assert!(path_exists(&fs, tmp, "a/b"));
+        assert!(path_exists(&fs, tmp, "foo/baz"));
+        assert!(path_exists(&fs, tmp, "foo/baz/a"));
+    }
 }
