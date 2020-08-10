@@ -87,10 +87,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all
         env:
           CARGO_INCREMENTAL: 0
-          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests"
+          RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests
+          RUSTDOCFLAGS: -Cpanic=abort
 
       # Note that `actions-rs/grcov` Action can install `grcov` too,
       # but can't use faster installation methods yet.
@@ -107,21 +107,10 @@ jobs:
         id: coverage
         uses: actions-rs/grcov@v0.1
         with:
-          coveralls-token: ${{ secrets.COVERALLS_TOKEN }}
+          config: .github/actions-rs/grcov.yml
 
       - name: Coveralls upload
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel: true
           path-to-lcov: ${{ steps.coverage.outputs.report }}
-
-  grcov_finalize:
-    runs-on: ubuntu-latest
-    needs: grcov
-    steps:
-      - name: Coveralls finalization
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
