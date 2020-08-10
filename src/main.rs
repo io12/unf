@@ -154,7 +154,7 @@ fn unixize_path<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path, flags: Flags) -> Re
         && is_dir
         && (!should_prompt || {
             let msg = format!("descend into directory '{}'?", path.display());
-            prompt_default(msg, false)
+            prompt_default(msg, false)?
         });
 
     if recurse {
@@ -185,7 +185,7 @@ fn unixize_path<FS: GenFS>(fs: &FS, cwd: &Path, path: &Path, flags: Flags) -> Re
         // Interactively prompt whether to rename the file, skipping
         // if the user says no
         let msg = format!("{}?", msg);
-        if !prompt_default(msg, false) {
+        if !prompt_default(msg, false)? {
             return Ok(());
         }
     } else {
