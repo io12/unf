@@ -576,7 +576,7 @@ checksum = "a7f741b240f1a48843f9b8e0444fb55fb2a4ff67293b50a9179dfd5ea67f8d41"
 
 [[package]]
 name = "unf"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "assert_cmd",
  "deunicode",
