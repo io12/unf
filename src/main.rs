@@ -245,7 +245,7 @@ where
 
 fn unixize_paths<FS: GenFS>(fs: &FS, cwd: &Path, paths: &[PathBuf], flags: Flags) -> Result<()> {
     for path in paths {
-        unixize_path(fs, cwd, &path, flags)?;
+        unixize_path(fs, cwd, path, flags)?;
     }
     Ok(())
 }
