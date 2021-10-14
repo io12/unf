@@ -260,9 +260,9 @@ dependencies = [
 
 [[package]]
 name = "ppv-lite86"
-version = "0.2.10"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
+checksum = "f209f69ad458a6495d2d867cce8117ca6360ac6edbc68930c5846544aaf39fd4"
 
 [[package]]
 name = "predicates"
