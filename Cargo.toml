@@ -2,7 +2,7 @@
 name = "unf"
 version = "2.1.4"
 authors = ["Benjamin Levy <blevy@protonmail.com>"]
-edition = "2018"
+edition = "2021"
 description = """
 UNixize Filename -- replace annoying anti-unix characters in filenames"""
 readme = "README.md"
