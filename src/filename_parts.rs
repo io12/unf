@@ -2,7 +2,7 @@ const FILENAME_NUM_DIGITS: usize = 3;
 
 /// Struct representing a filename that can be split, modified, and
 /// merged back into a filename string
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct FilenameParts {
     /// From the beginning of the filename to the final dot before the extension
     pub stem: String,
