@@ -21,7 +21,7 @@ use regex::Regex;
 use rsfs::DirEntry;
 use rsfs::GenFS;
 use rsfs::Metadata;
-use structopt::StructOpt;
+use clap::Parser;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 

@@ -2,10 +2,8 @@
 
 use std::path::PathBuf;
 
-use structopt::StructOpt;
-
 /// Parsed command-line arguments
-#[derive(StructOpt, Debug)]
+#[derive(clap::Parser, Debug)]
 #[structopt(about)]
 pub struct Opts {
     /// The paths of filenames to unixize
@@ -18,7 +16,7 @@ pub struct Opts {
 }
 
 /// Parsed command-line flags
-#[derive(StructOpt, Debug, Copy, Clone)]
+#[derive(clap::Parser, Debug, Copy, Clone)]
 #[structopt(about)]
 pub struct Flags {
     /// Recursively unixize filenames in directories. If some of the specified
