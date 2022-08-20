@@ -15,13 +15,13 @@ use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 
+use clap::Parser;
 use deunicode::deunicode;
 use promptly::prompt_default;
 use regex::Regex;
 use rsfs::DirEntry;
 use rsfs::GenFS;
 use rsfs::Metadata;
-use clap::Parser;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
