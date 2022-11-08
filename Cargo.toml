@@ -20,4 +20,4 @@ rsfs = "0.4.1"
 [dev-dependencies]
 tempfile = "3.3.0"
 walkdir = "2.3.2"
-assert_cmd = "2.0.4"
+assert_cmd = "2.0.6"
